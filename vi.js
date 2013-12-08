@@ -33,6 +33,44 @@ ideas:
 
 */
 var vi = (function() {
+    
+    // Browser detection from jQuery 1.8.3
+    var browser = (function() {
+        var matched, browser;
+
+        var uaMatch = function( ua ) {
+	        ua = ua.toLowerCase();
+
+	        var match = /(chrome)[ \/]([\w.]+)/.exec( ua ) ||
+		        /(webkit)[ \/]([\w.]+)/.exec( ua ) ||
+		        /(opera)(?:.*version|)[ \/]([\w.]+)/.exec( ua ) ||
+		        /(msie) ([\w.]+)/.exec( ua ) ||
+		        ua.indexOf("compatible") < 0 && /(mozilla)(?:.*? rv:([\w.]+)|)/.exec( ua ) ||
+		        [];
+
+	        return {
+		        browser: match[ 1 ] || "",
+		        version: match[ 2 ] || "0"
+	        };
+        };
+
+        matched = uaMatch( navigator.userAgent );
+        browser = {};
+
+        if ( matched.browser ) {
+	        browser[ matched.browser ] = true;
+	        browser.version = matched.version;
+        }
+
+        // Chrome is Webkit, but Webkit is also Safari.
+        if ( browser.chrome ) {
+	        browser.webkit = true;
+        } else if ( browser.webkit ) {
+	        browser.safari = true;
+        }
+        return browser;
+    })();
+
 
     var emacsen = false;
     var term_cols;
@@ -41,9 +79,10 @@ var vi = (function() {
     var term_win_height;
     var term_cur_width;
 
-    var tools;
     var suggest;
     var backing;
+
+    var fakemode;
 
     var tagstyle = 0;
     var line_height = 0;
@@ -61,10 +100,11 @@ var vi = (function() {
     var cursoriv;
     var drawiv;
 
-    var printer;
     var term;
     var base = 0;
     var left = 0;
+    
+    var spell_script;
 
     var vselm = 0;
     var vselx = undefined;
@@ -304,14 +344,6 @@ var vi = (function() {
 	    }
 	    return o;
     }
-    function _term_update_printer() {
-	    var i;
-	    var o = '';
-	    for (i = 0; i < file.length; i++) {
-		    o += _rtfl(i)+"<br/>";
-	    }
-	    printer.innerHTML = o;
-    }
     function term_thaw(s) {
 	    var a = s.split("\n");
 	    var i;
@@ -320,12 +352,10 @@ var vi = (function() {
 	    tags = new Array();
 	    var o = '';
 	    for (i = 0; i < a.length; i++) {
-		    o += a[i] + "<br/>";
 		    aa = _hra(a[i]);
 		    file[i] = aa[0];
 		    tags[i] = aa[1];
 	    }
-	    printer.innerHTML = o;
     }
 
     function _mxo(z,y) {
@@ -1280,9 +1310,6 @@ var vi = (function() {
 		    }
 	    }
 
-	    if (term_vi_flag('d') || term_vi_flag('F') || term_vi_flag('c')) {
-		    _term_update_printer();
-	    }
 	    if (term_vi_flag('d')) {
 		    term_vi_unset('d');
 		    lastcommand = 'd';
@@ -1742,7 +1769,7 @@ var vi = (function() {
 			    + file.length + ' col ' + (cursorx+left+1);
 
 	    } else if (cmd == 'h' || s.substr(i,5) == 'about') {
-		    statustext = "jsvi \xa9 2006 Internet Connection, Inc";
+		    statustext = "jsvi \xa9 2006 Internet Connection, Inc; 2013 Jakub Jankiewicz";
 
 	    } else if (s.substr(i,4) == 'kwak') {
 		    term.style.backgroundImage = 'url(ducky.jpg)';
@@ -2290,6 +2317,42 @@ var vi = (function() {
 	    term_keypress_inner(e, false);
 	    return false;
     }
+    
+    function term_keyup(e) {
+        if (fakemode || mode === 0) {
+		    vselm = 0;
+		    statustext = '';
+		    mode = 0;
+	    } else {
+            if (e.keyCode == 27) { // escape
+		        vselm = 0;
+		        statustext = '';
+		        if (command != '') {
+			        cursorx = savex;
+			        cursory = savey;
+		        } else {
+			        if (accum > 1) {
+				        var i, j;
+				        j = lastreg;
+				        lastreg = '.';
+				        for (i = 1; i < accum; i++) {
+					        term_paste(false);
+				        }
+				        lastreg = j;
+				        accum = 0;
+			        }
+			        cursorx--;
+			        term_scrollto();
+		        }
+		        mode = emacsen ? 1 : 0;
+		        command = '';
+		        commandleft = 0;
+            }
+        }
+	    term_redraw();
+	    _update_backing();
+    }
+    
     function term_keypress_inner(e, synth) {
 	    var k = e.which;
 	    var kc;
@@ -2359,7 +2422,7 @@ var vi = (function() {
 		    }
 	    }
 
-	    var fakemode = false;
+	    fakemode = false;
 
 	    // emacsen
 	    if (emacsen && meta && (kc == 'x' || kc == 'X')) {
@@ -2612,7 +2675,7 @@ var vi = (function() {
 	    }
 
 	    term_save_undo_line();
-
+        
 	    if (fakemode || mode == 0) {
 		    if (!fakemode && ctrl) return;
 		    if (lk == 'F' || lk == 'T' || lk == 'f' || lk == 't') {
@@ -2674,7 +2737,6 @@ var vi = (function() {
 			    term_scrollto();
 			    term_redraw();
 			    _update_backing();
-			    _term_update_printer();
 			    return;
 		    }
 
@@ -3041,13 +3103,13 @@ var vi = (function() {
 		    }
 		    term_scrollto();
 	    } else if ((k == 27 || (k == 91 && ctrl))) { // escape or ^[
+	        
 		    vselm = 0;
 		    statustext = '';
 		    if (command != '') {
 			    cursorx = savex;
 			    cursory = savey;
 		    } else {
-			    if (mode) _term_update_printer();
 			    if (accum > 1) {
 				    var i, j;
 				    j = lastreg;
@@ -3472,12 +3534,12 @@ var vi = (function() {
 		    term.removeChild(term.lastChild);
 	    }
 	    zx = undefined; // break
-
-	    if (!spelling && tospell > 0) {
+        
+	    if (!spelling && tospell > 0 && spell_script) {
 		    spelling = true;
 		    var xh = _xhttp();
 		    osp=osp.substr(0,osp.length-1);
-		    xh.open("GET", "spell.cgi?"+osp, true);
+		    xh.open("GET", spell_script+"?"+osp, true);
 		    xh.onreadystatechange = function() {
 			    if (xh.readyState == 4) {
 				    var j;
@@ -3518,11 +3580,6 @@ var vi = (function() {
 			    }
 		    };
 		    xh.send(undefined);
-	    }
-	    if (cursory == (h-1)) {
-		    tools.style.display = 'none';
-	    } else {
-		    tools.style.display = 'block';
 	    }
 	    _update_backing();
     }
@@ -3578,8 +3635,6 @@ var vi = (function() {
 
 	    document.body.removeChild(suggest);
 	    document.body.removeChild(term);
-	    document.body.removeChild(printer);
-	    document.body.removeChild(tools);
 	    document.body.removeChild(cursor);
 
 	    var z;
@@ -3609,12 +3664,17 @@ var vi = (function() {
 	    o.style.paddingRight='0px';
 	    o.style.paddingBottom='0px';
     }
-    return function(t) {
-	    if (term && term._formelement && term._formelement != t) {
+    return function(textarea, options) {
+	    if (term && term._formelement && term._formelement != textarea) {
 		    editor_disable(false);
 	    }
+	    
+	    if (options && options.spell_script) {
+	        spell_script = options.spell_script;
+        }
 
 	    // okay, find EVERYTHING inside body and display none it
+	    /*
 	    var z;
 	    for (z = document.body.firstChild; z; z = z.nextSibling) {
 		    if (z.tagName) {
@@ -3623,14 +3683,14 @@ var vi = (function() {
 			    z.style.display = 'none';
 		    }
 	    }
+	    */
 
 	    if (!term) {
 		    term = document.createElement('DIV');
-		    printer = document.createElement('DIV');
 		    suggest = document.createElement('DIV');
 		    backing = document.createElement('TEXTAREA');
-		    tools = document.createElement('DIV');
 		    cursor = document.createElement('DIV');
+		    wrapper = document.createElement('DIV');
 	    }
 
     //	if (document.documentElement) {
@@ -3640,7 +3700,6 @@ var vi = (function() {
     //		document.body.height = '100%';
     //	}
 
-	    printer.className = 'print';
 	    cursor.className = 'editorcursor';
 	    term.className = 'editor';
 
@@ -3664,6 +3723,7 @@ var vi = (function() {
 	    if (window.addEventListener) {
 		    window.addEventListener('DOMMouseScroll',_mousescroll,false);
 	    }
+	    /*
 	    tools.className = 'editortools';
 	    tools.style.position = 'absolute';
 	    tools.style.right = '0px';
@@ -3677,13 +3737,12 @@ var vi = (function() {
 		    + '&nbsp;'
 		    + '<input tabindex="-1" type="button" value="Abort" onClick="term_command(\':q?\');" />'
 		    + '<input tabindex="-1" type="button" value="Save and Close" onClick="term_command(\':wq\');" />'
+	    */
 	    cursor.onclick = _pass_click;
 	    cursor.ondblclick = _pass_dblclick;
-
+         
 	    document.body.appendChild(suggest);
 	    document.body.appendChild(term);
-	    document.body.appendChild(printer);
-	    document.body.appendChild(tools);
 	    // firefox bug
 	    if (once) document.body.appendChild(backing);
 	    document.body.appendChild(cursor);
@@ -3701,14 +3760,16 @@ var vi = (function() {
 	    term.style.fontFamily = 'monospace';
 	    term.style.fontSize = '100%';
 	    _zmp(term);
-	    term._formelement = t;
+	    term._formelement = textarea;
 	    document.body.style.overflow = 'hidden';
-	    tools.style.display = 'block';
 
 	    _cbd('select', _cancel_ev);
 	    _cbd('selectstart', _cancel_ev);
 	    _cbd('keydown', term_keyfix);
 	    _cbd('keypress', term_keypress);
+	    if (browser.webkit) {
+	        _cbd('keyup', term_keyup);
+        }
 	    _cbd('paste', _msie_paste);
 	    _cbd('click', _mouseclick);
 	    _cbd('mousedown', _mousedown);
@@ -3721,7 +3782,7 @@ var vi = (function() {
 	    vselx = undefined;
 	    vsely = undefined;
 
-	    t.blur();
+	    textarea.blur();
 	    cursorx = 0;
 	    cursory = 0;
 	    cursor.style.position = 'absolute';
@@ -3771,25 +3832,21 @@ var vi = (function() {
 	    suggest._visible = false;
 	    suggest.display = 'none';
 
-	    tools.style.backgroundColor = palette[0];
-	    _dfx(tools);
-
 	    // degrading...
 	    file = new Array();
 	    tags = new Array();
-	    var st = t.value.split("\n");
+	    var lines = textarea.value.split("\n");
 	    var j;
-	    for (j = 0; j < st.length; j++) {
-		    if (st[j].substr(st[j].length-1, 1) == "\r") {
-			    st[j] = st[j].substr(0, st[j].length-1);
+	    for (j = 0; j < lines.length; j++) {
+		    if (lines[j].substr(lines[j].length-1, 1) == "\r") {
+			    lines[j] = lines[j].substr(0, lines[j].length-1);
 		    }
-		    var aa = _hra(st[j]);
+		    var aa = _hra(lines[j]);
 		    file[j] = aa[0];
 		    tags[j] = aa[1];
 	    }
 	    // fix
-	    t.value = term_freeze();
-	    _term_update_printer();
+	    textarea.value = term_freeze();
 
 	    cursor.style.display = 'inline';
 	    _cursor_fix();
@@ -3797,8 +3854,70 @@ var vi = (function() {
 	    term_resize();
 
 	    _cbw('resize', term_resize);
-	    _cbw('beforeprint', _term_update_printer);
 	    _update_backing();
+	    
+	    // public API
+	    return {
+            freeze: term_freeze,
+            thaw: term_thaw,
+            setmode: term_setmode,
+            roll_yank: term_roll_yank,
+            justify: term_justify,
+            vi_bb: term_vi_bb,
+            vi_b: term_vi_b,
+            vi_tt: term_vi_tt,
+            vi_t: term_vi_t,
+            vi_ff: term_vi_ff,
+            vi_f: term_vi_f,
+            vi_eof: term_vi_eof,
+            vi_top: term_vi_top,
+            vi_h: term_vi_h,
+            vi_j: term_vi_j,
+            vi_k: term_vi_k,
+            vi_l: term_vi_l,
+            vi_ll: term_vi_ll,
+            vi_mm: term_vi_mm,
+            vi_hh: term_vi_hh,
+            vi_ob: term_vi_ob,
+            vi_cb: term_vi_cb,
+            vi_ww: term_vi_ww,
+            vi_w: term_vi_w,
+            vi_flag: term_vi_flag,
+            vi_unset: term_vi_unset,
+            vi_set: term_vi_set,
+            vi_bounce: term_vi_bounce,
+            vi_eol: term_vi_eol,
+            vi_line: term_vi_line,
+            vi_ee: term_vi_ee,
+            vi_e: term_vi_e,
+            vi_v: term_vi_v,
+            vi_vv: term_vi_vv,
+            select: term_select,
+            indent: term_indent,
+            unindent: term_unindent,
+            operate: term_operate,
+            save_undo_line: term_save_undo_line,
+            save_undo: term_save_undo,
+            delete: term_delete,
+            skipreverse2: term_skipreverse2,
+            skipforward: term_skipforward,
+            skipbackward: term_skipbackward,
+            search: term_search,
+            rsearch: term_rsearch,
+            command: term_command,
+            calcy: term_calcy,
+            calcx: term_calcx,
+            scrollto: term_scrollto,
+            insert: term_insert,
+            paste: term_paste,
+            keyfix: term_keyfix,
+            keypress: term_keypress,
+            keypress_inner: term_keypress_inner,
+            draw_cursor: term_draw_cursor,
+            redraw: term_redraw,
+            resize: term_resize,
+            disable: editor_disable
+        };
     };
 
 })();
