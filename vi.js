@@ -3652,7 +3652,7 @@ var vi = (function() {
 	    document.body.style.overflow = '';
     }
     function _cursor_fix() {
-	    term_cur_width = cursor.offsetWidth;
+	    term_cur_width = cursor.getBoundingClientRect().width;
     }
     function _zmp(o) {
 	    o.style.marginTop='0px';
