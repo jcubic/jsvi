@@ -1723,9 +1723,11 @@ var vi = (function() {
 
         var cmd2 = s.substr(i,2);
         var cmd = s.substr(i, 1);
-
         if (cmd2 == 'wq' || cmd == 'x') {
             editor_disable(true);
+            if (cmd2 == 'wq' && onSave) {
+                onSave();
+            }
         } else if (cmd == '=') {
             statustext = '' + bottom;
             return;
