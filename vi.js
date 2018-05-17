@@ -1805,9 +1805,6 @@ var vi = (function() {
                 }
             }
             editor_disable(false);
-            if (onExit) {
-                onExit();
-            }
         } else if (cmd == 'd') {
             // delete lines
             yank_buffer = term_delete(top);
@@ -3655,6 +3652,9 @@ var vi = (function() {
         if (document.focus) document.focus();
 
         document.body.style.overflow = '';
+        if (onExit) {
+            onExit();
+        }
     }
     function _cursor_fix() {
         term_cur_width = cursor.getBoundingClientRect().width;
