@@ -1728,6 +1728,9 @@ var vi = (function() {
             if (cmd2 == 'wq' && onSave) {
                 onSave();
             }
+            if (onExit) {
+                onExit();
+            }
         } else if (cmd == '=') {
             statustext = '' + bottom;
             return;
@@ -1797,6 +1800,9 @@ var vi = (function() {
                     if (cmd2 == 'q?') {
                         if (confirm("Your changes will be lost\nAre you sure?")) {
                             editor_disable(false);
+                            if (onExit) {
+                                onExit();
+                            }
                             return;
                         } else {
                             return;
@@ -1807,6 +1813,9 @@ var vi = (function() {
                 }
             }
             editor_disable(false);
+            if (onExit) {
+                onExit();
+            }
         } else if (cmd == 'd') {
             // delete lines
             yank_buffer = term_delete(top);
@@ -3097,6 +3106,9 @@ var vi = (function() {
                 }
             } else if (kc ==  'Z' && lk == 'Z') {
                 editor_disable(true);
+                if (onExit) {
+                    onExit();
+                }
                 accum = 0;
             } else if (k == 27 || (k == 91 && ctrl)) { // escape or ^[
                 vselm = 0;
@@ -3654,9 +3666,6 @@ var vi = (function() {
         if (document.focus) document.focus();
 
         document.body.style.overflow = '';
-        if (onExit) {
-            onExit();
-        }
     }
     function _cursor_fix() {
         term_cur_width = cursor.getBoundingClientRect().width;
