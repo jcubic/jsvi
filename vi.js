@@ -101,6 +101,7 @@ var vi = (function() {
     var drawiv;
 
     var term;
+    var editor_wrapper;
     var base = 0;
     var left = 0;
 
@@ -1203,7 +1204,7 @@ var vi = (function() {
             ex = sx;
             sx = i;
         }
-        var t = file[ey];
+        var t = file[ey] || '';
         var g = tags[ey];
         var restore = false;
         if (term_vi_flag('c')) term_vi_set('d');
@@ -2155,6 +2156,9 @@ var vi = (function() {
     function term_calcy() {
         // fixup character inside... burrr
         var xx = file[cursory+base];
+        if (!xx) {
+            return 0;
+        }
         var xg = tags[cursory+base];
         var zleft = left;
         if (cursory == (term_rows-1)) {
@@ -3195,7 +3199,7 @@ var vi = (function() {
             _update_backing();
             return;
         } else {
-            var t = (file[cursory+base]);
+            var t = file[cursory+base] || ''; // or for empty buffer
             var lx = (t.substr(0, cursorx+left));
             var ly = (t.substr(cursorx+left+(mode-1)));
             var lz = (t.substr(cursorx+left));
@@ -3649,9 +3653,7 @@ var vi = (function() {
         backing.oninput = undefined;
         backing.onInput = undefined;
 
-        document.body.removeChild(suggest);
-        document.body.removeChild(term);
-        document.body.removeChild(cursor);
+        editor_wrapper.parentNode.removeChild(editor_wrapper);
 
         var z;
         for (z = document.body.firstChild; z; z = z.nextSibling) {
@@ -3693,6 +3695,8 @@ var vi = (function() {
             }
         }
 
+
+
         if (options && options.spell_script) {
             spell_script = options.spell_script;
         }
@@ -3714,7 +3718,8 @@ var vi = (function() {
             suggest = document.createElement('DIV');
             backing = document.createElement('TEXTAREA');
             cursor = document.createElement('DIV');
-            wrapper = document.createElement('DIV');
+            editor_wrapper = document.createElement('DIV');
+            editor_wrapper.setAttribute('class', 'vi-editor');
         }
 
     //    if (document.documentElement) {
@@ -3744,8 +3749,8 @@ var vi = (function() {
             backing.addEventListener('Input',_backing_paste,false);
             backing.addEventListener('input',_backing_paste,false);
         }
-        if (window.addEventListener) {
-            window.addEventListener('DOMMouseScroll',_mousescroll,false);
+        if (editor_wrapper.addEventListener) {
+            editor_wrapper.addEventListener('DOMMouseScroll',_mousescroll,false);
         }
         /*
         tools.className = 'editortools';
@@ -3765,11 +3770,13 @@ var vi = (function() {
         cursor.onclick = _pass_click;
         cursor.ondblclick = _pass_dblclick;
 
-        document.body.appendChild(suggest);
-        document.body.appendChild(term);
+        editor_wrapper.appendChild(suggest);
+        editor_wrapper.appendChild(term);
         // firefox bug
-        if (once) document.body.appendChild(backing);
-        document.body.appendChild(cursor);
+        if (once) editor_wrapper.appendChild(backing);
+        editor_wrapper.appendChild(cursor);
+
+        textarea.parentNode.insertBefore(editor_wrapper, textarea);
 
         cursoriv = window.setInterval(_redraw_cursor, 300);
 
@@ -3785,7 +3792,7 @@ var vi = (function() {
         term.style.fontSize = '100%';
         _zmp(term);
         term._formelement = textarea;
-        document.body.style.overflow = 'hidden';
+        editor_wrapper.style.overflow = 'hidden';
 
         _cbd('select', _cancel_ev);
         _cbd('selectstart', _cancel_ev);
