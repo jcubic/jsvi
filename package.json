@@ -4,7 +4,6 @@
   "description": "VI Editor implemented in JavaScript for use in Browser",
   "main": "vi.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
@@ -18,7 +17,7 @@
     "cli",
     "text"
   ],
-  "author": "Jakub Jankiewicz <jcubic@onet.pl> (http://jcubic.pl/jakub-jankiewicz/)",
+  "author": "Jakub T. Jankiewicz <jcubic@onet.pl> (https://jcubic.pl/jakub-jankiewicz/)",
   "license": "GPL-3.0",
   "bugs": {
     "url": "https://github.com/jcubic/jsvi/issues"

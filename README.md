@@ -1,6 +1,6 @@
     JSVI - VI in JavaScript.
     Copyright (C) 2006-2008 Internet Connection, Inc.
-    Copyright (C) 2013-2018 Jakub Jankiewicz
+    Copyright (C) 2013-2018 Jakub T. Jankiewicz
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
