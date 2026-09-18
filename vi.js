@@ -44,8 +44,7 @@ var vi = (function() {
             var match = /(chrome)[ \/]([\w.]+)/.exec( ua ) ||
                 /(webkit)[ \/]([\w.]+)/.exec( ua ) ||
                 /(opera)(?:.*version|)[ \/]([\w.]+)/.exec( ua ) ||
-                /(msie) ([\w.]+)/.exec( ua ) ||
-                ua.indexOf("compatible") < 0 && /(mozilla)(?:.*? rv:([\w.]+)|)/.exec( ua ) ||
+                /(mozilla)(?:.*? rv:([\w.]+)|)/.exec( ua ) ||
                 [];
 
             return {
@@ -406,16 +405,12 @@ var vi = (function() {
     }
 
     function _cancel_ev(e) {
-        if (!e) e = window.event;
         if (!e) return false;
-        if (e.preventDefault) e.preventDefault();
-        if (e.stopPropagation) e.stopPropagation();
+        e.preventDefault();
+        e.stopPropagation();
         return false;
     }
     function _willclick(e) {
-        if (window.event) {
-            if (!e) e = window.event;
-        }
         if (!e) return true;
         if (cclick != undefined) window.clearTimeout(cclick);
         var x = e.clientX;
@@ -430,10 +425,8 @@ var vi = (function() {
         return _willclick(e);
     }
     function _srep(e) {
-        if (!e) e = window.event;
-        if (e.preventDefault) e.preventDefault();
-        if (e.stopPropagation) e.stopPropagation();
-        e.cancelBubble=true;
+        e.preventDefault();
+        e.stopPropagation();
         var y = this._row;
         var x = this._col;
         var len = this._len;
@@ -490,13 +483,9 @@ var vi = (function() {
     }
     function _suggest(e) {
         var z = this;
-        if (window.event) {
-            if (!e) e = window.event;
-        }
         if (e) {
-            if (e.preventDefault) e.preventDefault();
-            if (e.stopPropagation) e.stopPropagation();
-            e.cancelBubble=true;
+            e.preventDefault();
+            e.stopPropagation();
         }
         (function(q) {
             window.setTimeout(function(){
@@ -605,8 +594,6 @@ var vi = (function() {
         suggest.appendChild(_rl(2,1));
         suggest.appendChild(_rl(3,1));
 
-        // msie needs to recalculate these things manually... grr...
-        // this doesn't work because msie doesn't calculate offsetwidth (thtphtpht)
         var zq;
         var mw = 11;
         if (mw < xt.length) mw = xt.length;
@@ -658,11 +645,6 @@ var vi = (function() {
         backing._lastvalue = backing.value;
         term_paste(false, backing.value);
         term_redraw();
-    }
-    function _msie_paste() {
-        var chunk = "new content associated with this object";
-        event.returnValue = false;
-        term_paste(false, window.clipboardData.getData("Text", chunk));
     }
     function _backing_paste() {
         _update_backing();
@@ -727,7 +709,6 @@ var vi = (function() {
         return true;
     }
     function _mousescroll(e) {
-        if (!e) e = window.event;
         var d = 0;
         if (e.wheelDelta) {
             d = e.wheelDelta;
@@ -748,7 +729,6 @@ var vi = (function() {
 
     function _mousedown(e) {
         if (suggest._visible) return true;
-        if (!e) e = window.event;
         var y = _yaty(e.clientY);
         if (y >= (term_rows-1)) return true;
         _willclick(e);
@@ -759,18 +739,13 @@ var vi = (function() {
         return false;
     }
     function _mousemove(e) {
-        if (!e) e = window.event;
         if (e) {
-            if (e.preventDefault) e.preventDefault();
-            if (e.stopPropagation) e.stopPropagation();
-            e.cancelBubble=true;
+            e.preventDefault();
+            e.stopPropagation();
         }
         if (window.getSelection) {
             var s = window.getSelection();
             if (s.removeAllRanges) s.removeAllRanges();
-        }
-        if (document.selection && document.selection.empty) {
-            eval('try{document.selection.empty();}catch(e){}');
         }
         // fixup selection
         _update_backing();
@@ -807,7 +782,6 @@ var vi = (function() {
         return false;
     }
     function _mouseclick(e) {
-        if (!e) e = window.event;
         var y = _yaty(e.clientY);
         if (y >= (term_rows-1)) return true;
         vselm = 0;
@@ -815,7 +789,6 @@ var vi = (function() {
         return true;
     }
     function _cursorto(e) {
-        if (!e) e = window.event;
         var x = e.clientX;
         var y = e.clientY;
         if (suggest._visible) {
@@ -2294,8 +2267,6 @@ var vi = (function() {
         return true;
     }
     function term_keyfix(e) {
-        if (!e) e = window.event;
-
         var ch = e.keyCode;
         if (!ch) ch = e.which;
 
@@ -2314,26 +2285,22 @@ var vi = (function() {
         || ch == 57374
         || ch == 57375
         || ch == 57376) {
-            if (e.preventDefault) e.preventDefault();
-            if (e.stopPropagation) e.stopPropagation();
+            e.preventDefault();
+            e.stopPropagation();
             term_keypress_inner(e, true);
-            e.cancelBubble=true;
             return false;
         } else {
-            e.cancelBubble=false;
             return true;
         }
 
     }
     function term_keypress(e) {
-        if (!e) e = window.event;
-        if (e.preventDefault) e.preventDefault();
-        if (e.stopPropagation) e.stopPropagation();
+        e.preventDefault();
+        e.stopPropagation();
         if (suggest._visible) {
             suggest.style.display = 'none';
             suggest._visible = false;
         }
-        e.cancelBubble=true;
         term_keypress_inner(e, false);
         return false;
     }
@@ -3801,7 +3768,6 @@ var vi = (function() {
         if (browser.webkit) {
             _cbd('keyup', term_keyup);
         }
-        _cbd('paste', _msie_paste);
         _cbd('click', _mouseclick);
         _cbd('mousedown', _mousedown);
         _cbd('mousemove', _mousemove);
@@ -3846,10 +3812,6 @@ var vi = (function() {
             var cs = window.getComputedStyle(term, null);
             palette[0] = cs.color;
             palette[1] = cs.backgroundColor;
-        } else if (term.currentStyle) {
-            palette = new Array();
-            palette[0] = term.currentStyle.color;
-            palette[1] = term.currentStyle.backgroundColor;
         }
 
         if (emacsen) {
