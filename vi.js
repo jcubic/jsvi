@@ -873,12 +873,12 @@ var vi = (function() {
         var y = cursory+base;
         var i;
         if (!accum) accum = 1;
-        var t = (file[y]);
-        file[p] = t.replace(/[ ][ ]*$/,"");
-        tags[p] = tags[p].substr(0, file[p].length);
+        var t = (file[y] || '');
+        file[y] = t.replace(/[ ][ ]*$/,"");
+        tags[y] = (tags[y]||'').substr(0, file[y].length);
         for (i = 0; i < accum; i++) {
-            var t = file[i+y+1];
-            var g = tags[i+y+1];
+            var t = file[i+y+1] || '';
+            var g = tags[i+y+1] || '';
             term_delete(i+y+1); // ignore return
 
             t = t.replace(/^[ ][ ]*/,"");
@@ -888,8 +888,8 @@ var vi = (function() {
                 tags[y] = tags[y] + "\0" + g;
             }
         }
-        file[y] = file[y].replace(/^[ ][ ]*/,"");
-        tags[y] = tags[y].substr(tags[y].length - file[y].length, file[y].length);
+        file[y] = (file[y]||'').replace(/^[ ][ ]*/,"");
+        tags[y] = (tags[y]||'').substr((tags[y]||'').length - file[y].length, file[y].length);
         accum = 0;
     }
 
@@ -1090,7 +1090,7 @@ var vi = (function() {
         return false;
     }
     function term_vi_eol() {
-        var t = (file[cursory+base]);
+        var t = (file[cursory+base]) || '';
         cursorx = (t.length)-left;
         if (cursorx < 0) {
             left = 0;
@@ -1099,7 +1099,7 @@ var vi = (function() {
         return true;
     }
     function term_vi_line() {
-        var t = (file[cursory+base]);
+        var t = (file[cursory+base] || '');
         left = 0;
         cursorx = t.length+1;
         return true;
