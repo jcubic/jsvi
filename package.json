@@ -1,6 +1,6 @@
 {
   "name": "jsvi",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "VI Editor implemented in JavaScript for use in Browser",
   "type": "module",
   "main": "vi.esm.js",
