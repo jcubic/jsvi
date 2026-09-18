@@ -87,6 +87,7 @@ var vi = (function() {
     var tagstyle = 0;
     var line_height = 0;
     var cclick = undefined;
+    var padding = 0;
 
     var mode = 0;
     var accum = 0;
@@ -663,7 +664,10 @@ var vi = (function() {
         backing.select();
     }
     function _yaty(y) {
-        if (line_height) return parseInt(y/line_height);
+        if (line_height) {
+            var fast_cy = parseInt((y - padding) / line_height);
+            return fast_cy < 0 ? 0 : fast_cy;
+        }
         var zx;
         var qx = term.firstChild;
         var nh = 0;
@@ -687,7 +691,8 @@ var vi = (function() {
     function _cursortoxy(x,y) {
         // this is a little gross...
         var sx = cursorx;
-        cursorx = parseInt(x / term_cur_width);
+        cursorx = parseInt((x - padding) / term_cur_width);
+        if (cursorx < 0) cursorx = 0;
         term_redraw();
 
         var sy = cursory;
@@ -2150,7 +2155,7 @@ var vi = (function() {
     }
     function term_calcx() {
         if (cursorx != cursor._lastx) {
-            cursor.style.left = (cursorx * (term_cur_width)) + 'px';
+            cursor.style.left = (padding + cursorx * (term_cur_width)) + 'px';
             cursor._lastx = cursorx;
             term_calcy();
         }
@@ -3511,6 +3516,7 @@ var vi = (function() {
                     nh  += qx.offsetTop;
                     qx = qx.offsetParent;
                 }
+                nh -= padding;
                 if (nh != line_height) {
                     line_height = nh;
                     term_resize();
@@ -3592,7 +3598,7 @@ var vi = (function() {
         var r = line_height;
         if (!line_height) r = cursor.offsetHeight-1; // 1 px overlap
         var nh = (h/r);
-        term_rows = parseInt(nh);
+        term_rows = Math.ceil(nh);
         term_win_height = h;
 
         h = term.offsetWidth;
@@ -3672,6 +3678,12 @@ var vi = (function() {
 
         if (options && options.spell_script) {
             spell_script = options.spell_script;
+        }
+
+        if (options && typeof options.padding == 'number') {
+            padding = options.padding;
+        } else {
+            padding = 0;
         }
 
         // okay, find EVERYTHING inside body and display none it
@@ -3754,12 +3766,12 @@ var vi = (function() {
         cursoriv = window.setInterval(_redraw_cursor, 300);
 
         term.style.position = 'absolute';
-        term.style.top = '0px';
-        term.style.left = '0px';
+        term.style.top = padding + 'px';
+        term.style.left = padding + 'px';
         term.style.display = 'block';
         term.style.overflow = 'hidden';
-        term.style.width = '100%';
-        term.style.height = '100%';
+        term.style.width = 'calc(100% - ' + (padding * 2) + 'px)';
+        term.style.height = 'calc(100% - ' + (padding * 2) + 'px)';
         term.style.cursor = 'default';
         term.style.fontFamily = 'monospace';
         term.style.fontSize = '100%';
@@ -3789,8 +3801,8 @@ var vi = (function() {
         cursorx = 0;
         cursory = 0;
         cursor.style.position = 'absolute';
-        cursor.style.top = 0;
-        cursor.style.left = 0;
+        cursor.style.top = padding + 'px';
+        cursor.style.left = padding + 'px';
         cursor.style.fontFamily = 'monospace';
         cursor.style.fontSize = '100%';
         cursor.style.width = 'auto';

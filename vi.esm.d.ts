@@ -17,6 +17,8 @@ export interface ViOptions {
     backgroundColor?: string;
     /** URL of a server-side spell-check script used by the `:spell` command. */
     spell_script?: string;
+    /** Space in pixels between the editor's text area and the frame around it. Defaults to 0. */
+    padding?: number;
 }
 
 export interface ViEditor {

@@ -61,6 +61,7 @@ UI and returns an editor instance. Options:
 | `color`           | `string`                    | Foreground color (needs `backgroundColor`) |
 | `backgroundColor` | `string`                    | Background color (needs `color`)         |
 | `spell_script`    | `string`                    | URL of a server-side spell-check script  |
+| `padding`         | `number`                    | Space in pixels around the editor's text area (default `0`) |
 
 The returned editor instance exposes methods such as `freeze()` /
 `thaw()` (serialize/load the buffer), `insert()`, `delete()`,
