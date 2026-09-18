@@ -4,7 +4,7 @@
 [![CI](https://github.com/jcubic/jsvi/actions/workflows/ci.yml/badge.svg)](https://github.com/jcubic/jsvi/actions/workflows/ci.yml)
 [![Coverage Status](https://coveralls.io/repos/github/jcubic/jsvi/badge.svg)](https://coveralls.io/github/jcubic/jsvi)
 
-VI editor implemented in JavaScript, that turns any `<textarea>` into a
+VI editor implemented in JavaScript, which turns any `<textarea>` into a
 full-screen VI-style editor running in the browser.
 
 ## Install
@@ -36,7 +36,7 @@ TypeScript types for the public API (the `vi()` factory and the editor
 instance it returns) are included, so `import vi from 'jsvi'` is typed
 out of the box.
 
-### Script tag (jsDelivr)
+### Script Tag (jsDelivr)
 
 ```html
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsvi/vi.css" />
