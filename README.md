@@ -25,7 +25,8 @@ import 'jsvi/vi.css';
 const textarea = document.querySelector('#editor');
 const editor = vi(textarea, {
     onSave() {
-        console.log('saved:', textarea.value);
+        console.log('contents:', textarea.value);
+        console.log('contents:', editor.freeze());
     },
     onExit() {
         console.log('editor closed');
