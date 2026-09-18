@@ -88,6 +88,7 @@ var vi = (function() {
     var line_height = 0;
     var cclick = undefined;
     var padding = 0;
+    var html = false;
 
     var mode = 0;
     var accum = 0;
@@ -247,35 +248,35 @@ var vi = (function() {
         for (i = 0; i < x.length; i++) {
             var x3 = x.substr(i,3);
             var gx = String.fromCharCode(cx);
-            if (x3 == '<b>') {
+            if (html && x3 == '<b>') {
                 cx = cx | 1;
                 i += 2;
-            } else if (x3 == '</b') {
+            } else if (html && x3 == '</b') {
                 cx = (cx | 1) ^ 1;
                 i += 3;
-            } else if (x3 == '<u>') {
+            } else if (html && x3 == '<u>') {
                 cx = cx | 2;
                 i += 2;
-            } else if (x3 == '</u') {
+            } else if (html && x3 == '</u') {
                 cx = (cx | 2) ^ 2;
                 i += 3;
-            } else if (x3 == '<i>') {
+            } else if (html && x3 == '<i>') {
                 cx = cx | 16;
                 i += 2;
-            } else if (x3 == '</i') {
+            } else if (html && x3 == '</i') {
                 cx = (cx | 16) ^ 16;
                 i += 3;
-            } else if (x3 == '<sp') { // <span class="rv">
+            } else if (html && x3 == '<sp') { // <span class="rv">
                 cx = cx | 4;
                 i += 16;
-            } else if (x3 == '</s') { // </span>
+            } else if (html && x3 == '</s') { // </span>
                 cx = (cx | 4) ^ 4;
                 i += 6;
-            } else if (x3 == '&am') { // &amp;
+            } else if (html && x3 == '&am') { // &amp;
                 t += '&';
                 g += gx;
                 i += 4;
-            } else if (x3 == '&lt') { // &lt;
+            } else if (html && x3 == '&lt') { // &lt;
                 t += '<';
                 g += gx;
                 i += 3;
@@ -300,30 +301,34 @@ var vi = (function() {
         for (i = 0; i < t.length; i++) {
             var gx = g.substr(i, 1).charCodeAt(0);
             var tx = t.substr(i, 1);
-            if (tx == "<") tx = "&lt;";
-            else if (tx == '&') tx = '&amp;';
+            if (html) {
+                if (tx == "<") tx = "&lt;";
+                else if (tx == '&') tx = '&amp;';
+            }
             if (gx != cx) {
-                if ((gx & 1) && !(cx & 1)) {
-                    o += "<b>";
-                } else if (!(gx & 1) && (cx & 1)) {
-                    o += "</b>";
-                }
+                if (html) {
+                    if ((gx & 1) && !(cx & 1)) {
+                        o += "<b>";
+                    } else if (!(gx & 1) && (cx & 1)) {
+                        o += "</b>";
+                    }
 
-                if ((gx & 2) && !(cx & 2)) {
-                    o += "<u>";
-                } else if (!(gx & 2) && (cx & 2)) {
-                    o += "</u>";
-                }
+                    if ((gx & 2) && !(cx & 2)) {
+                        o += "<u>";
+                    } else if (!(gx & 2) && (cx & 2)) {
+                        o += "</u>";
+                    }
 
-                if ((gx & 4) && !(cx & 4)) {
-                    o += "<span class=\"rv\">";
-                } else if (!(gx & 4) && (cx & 4)) {
-                    o += "</span>";
-                }
-                if ((gx & 16) && !(cx & 16)) {
-                    o += "<i>";
-                } else if (!(gx & 16) && (cx & 16)) {
-                    o += "</i>";
+                    if ((gx & 4) && !(cx & 4)) {
+                        o += "<span class=\"rv\">";
+                    } else if (!(gx & 4) && (cx & 4)) {
+                        o += "</span>";
+                    }
+                    if ((gx & 16) && !(cx & 16)) {
+                        o += "<i>";
+                    } else if (!(gx & 16) && (cx & 16)) {
+                        o += "</i>";
+                    }
                 }
                 cx = gx;
             }
@@ -3684,6 +3689,12 @@ var vi = (function() {
             padding = options.padding;
         } else {
             padding = 0;
+        }
+
+        if (options && typeof options.html == 'boolean') {
+            html = options.html;
+        } else {
+            html = false;
         }
 
         // okay, find EVERYTHING inside body and display none it

@@ -19,6 +19,14 @@ export interface ViOptions {
     spell_script?: string;
     /** Space in pixels between the editor's text area and the frame around it. Defaults to 0. */
     padding?: number;
+    /**
+     * When true, `<b>`, `<u>`, `<i>`, `<span class="rv">` and `&amp;`/`&lt;`
+     * in the buffer are interpreted as rich-text formatting markup (and
+     * `<`/`&` are HTML-escaped on save). Defaults to false, so the buffer
+     * is treated as plain text and no escaping is needed to edit HTML or
+     * code containing `<` and `&`.
+     */
+    html?: boolean;
 }
 
 export interface ViEditor {

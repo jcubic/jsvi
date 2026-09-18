@@ -62,6 +62,7 @@ UI and returns an editor instance. Options:
 | `backgroundColor` | `string`                    | Background color (needs `color`)         |
 | `spell_script`    | `string`                    | URL of a server-side spell-check script  |
 | `padding`         | `number`                    | Space in pixels around the editor's text area (default `0`) |
+| `html`            | `boolean`                    | Interpret `<b>`/`<u>`/`<i>`/`<span class="rv">` and `&amp;`/`&lt;` as rich-text markup, and escape `<`/`&` on save (default `false`, plain text) |
 
 The returned editor instance exposes methods such as `freeze()` /
 `thaw()` (serialize/load the buffer), `insert()`, `delete()`,
