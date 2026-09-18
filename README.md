@@ -1,9 +1,20 @@
-# jsvi
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/jcubic/jsvi/blob/master/.github/logo-dark.svg?raw=true" />
+    <source media="(prefers-color-scheme: light)" srcset="https://github.com/jcubic/jsvi/blob/master/.github/logo-light.svg?raw=true" />
+    <img alt="JSVI Logo" src="https://github.com/jcubic/jsvi/blob/master/.github/logo-light.svg?raw=true" />
+  </picture>
+</h1>
+
+
+<div align="center">
 
 [![npm version](https://img.shields.io/npm/v/jsvi.svg)](https://www.npmjs.com/package/jsvi)
 [![JSDelivr CDN download](https://data.jsdelivr.com/v1/package/npm/jsvi/badge)](https://www.jsdelivr.com/package/npm/jsvi)
 [![CI](https://github.com/jcubic/jsvi/actions/workflows/ci.yml/badge.svg)](https://github.com/jcubic/jsvi/actions/workflows/ci.yml)
 [![Coverage Status](https://coveralls.io/repos/github/jcubic/jsvi/badge.svg)](https://coveralls.io/github/jcubic/jsvi)
+
+</div>
 
 VI editor implemented in JavaScript, which turns any `<textarea>` into a
 full-screen VI-style editor running in the browser.
