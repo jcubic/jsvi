@@ -102,9 +102,9 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
+along with this program.  If not, see &lt;<a href="https://www.gnu.org/licenses/">https://www.gnu.org/licenses/</a>&gt;.
 
 Released under the GNU General Public License v3.0. See
-[LICENSE](./LICENSE) for details.
+<a href="https://github.com/jcubic/jsvi/blob/master/LICENSE">LICENSE</a> for details.
 
 </pre>
