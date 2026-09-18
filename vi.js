@@ -1050,10 +1050,11 @@ var vi = (function() {
     function term_vi_bounce() {
         var y = cursory+base;
         var t = (file[y]);
+        if (!t) return false;
         var x = cursorx+left;
         var z1 = '[{()}]';
         var z2 = ']})({[';
-        while (x < t.length) {
+        while (t && x < t.length) {
             var z = z1.indexOf(t.substr(x,1));
             if (z == -1) {
                 x++;
@@ -1075,10 +1076,12 @@ var vi = (function() {
                 if (d == -1) {
                     y--;
                     t = file[y];
+                    if (!t) break;
                     x = (t.length-1)
                 } else {
                     y++;
                     t = file[y];
+                    if (!t) break;
                     x = 0;
                 }
             }
