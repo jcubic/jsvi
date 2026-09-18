@@ -1,15 +1,17 @@
 import type { ViEditor } from '../vi.esm.js';
 
 /**
- * `keyCode` values for the non-printable keys jsvi's `keyfix` (keydown)
- * handler recognizes (vi.js:2280-2306). Raw browser codes are accepted
- * directly, no need for the legacy synthetic 57373-57376 arrow codes.
+ * `keyCode` values for the keys jsvi's `keyfix` (keydown, synth=true) path
+ * recognizes (vi.js:2280-2306) — use these with `key()`. Note: Enter (13)
+ * and Escape (27) are deliberately NOT in that list — real browsers fire
+ * `keypress` for them, so jsvi expects them via the synth=false path; use
+ * the dedicated `enter()`/`esc()` helpers below instead of `key()` for
+ * those. Tab (9) is similarly only handled on the synth=false path inside
+ * insert mode (vi.js:3194) — `term_keypress_inner` drops it early
+ * (vi.js:2674) when synth=true.
  */
 export const Keys = {
     BACKSPACE: 8,
-    TAB: 9,
-    ENTER: 13,
-    ESC: 27,
     LEFT: 37,
     UP: 38,
     RIGHT: 39,
@@ -56,4 +58,14 @@ export function type(editor: ViEditor, text: string): void {
     for (const ch of text) {
         press(editor, ch);
     }
+}
+
+/** Sends Enter (splits the line in insert mode, runs the command line in ex/search entry). */
+export function enter(editor: ViEditor): void {
+    press(editor, '\r');
+}
+
+/** Sends Escape (returns to command mode from insert/replace/ex/search entry). */
+export function esc(editor: ViEditor): void {
+    press(editor, '\x1b');
 }

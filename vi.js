@@ -2676,7 +2676,6 @@ var vi = (function() {
         }
 
         term_save_undo_line();
-
         if (fakemode || mode == 0) {
             if (!fakemode && ctrl) return;
             if (lk == 'F' || lk == 'T' || lk == 'f' || lk == 't') {
@@ -2837,10 +2836,18 @@ var vi = (function() {
                 term_vi_set('d');
                 term_operate();
                 term_setmode(1);
+                // operate's scroll clamps to last char in normal mode;
+                // for C we need the empty insert position at EOL
+                var _t = file[cursory+base] || '';
+                cursorx = _t.length - left;
+                if (cursorx < 0) { left = 0; cursorx = _t.length; }
+                term_scrollto();
+                return;
             } else if (kc == 'D') {
                 term_ex_motion = term_vi_eol;
                 term_vi_set('d');
                 term_operate();
+                return;
             } else if (kc == 'd') {
                 if (vselm) {
                     term_vi_set('d');
@@ -2936,6 +2943,7 @@ var vi = (function() {
                     vselm = 0;
                 }
                 term_setmode(1);
+                return;
             } else if (kc == 'J') {
                 term_save_undo();
                 term_justify();
@@ -2988,6 +2996,7 @@ var vi = (function() {
                 left = 0;
                 term_insert(cursory+base);
                 term_setmode(1);
+                return;
             } else if (kc == 'o') {
                 cursory++;
                 cursorx = 0;
@@ -2995,6 +3004,7 @@ var vi = (function() {
                 term_insert(cursory+base);
                 term_setmode(1);
                 term_save_undo();
+                return;
             } else if (kc == 'P' || kc == 'p') {
                 term_save_undo();
                 term_paste(kc == 'P' ? false : true);
@@ -3010,6 +3020,7 @@ var vi = (function() {
                     vselm = 0;
                 }
                 term_setmode(2);
+                return;
 
             } else if (kc == 'S') {
                 term_vi_set('d');
@@ -3022,6 +3033,7 @@ var vi = (function() {
                 cursorx = savex-left;
                 cursory = savey-base;
                 term_setmode(1);
+                return;
 
             } else if (kc == 's') {
                 term_vi_set('d');
@@ -3033,6 +3045,7 @@ var vi = (function() {
                 cursorx = savex-left;
                 cursory = savey-base;
                 term_setmode(1);
+                return;
 
             } else if (kc == 'T' || kc == 't') {
                 // nothing here
@@ -3625,12 +3638,14 @@ var vi = (function() {
         if (!line_height) r = cursor.offsetHeight-1; // 1 px overlap
         var nh = (h/r);
         term_rows = Math.ceil(nh);
+        if (!term_rows || !isFinite(term_rows) || term_rows < 2) term_rows = 24;
         term_win_height = h;
 
         h = term.offsetWidth;
         r = (term_cur_width+1); // 1 px padding
         nh = (h/r);
         term_cols = parseInt(nh);
+        if (!term_cols || !isFinite(term_cols) || term_cols < 2) term_cols = 80;
         term_win_width = h;
 
         term_redraw();
@@ -3691,6 +3706,49 @@ var vi = (function() {
         if (term && term._formelement && term._formelement != textarea) {
             editor_disable(false);
         }
+        // Reset all shared state for a fresh editor instance
+        emacsen = false;
+        mode = 0;
+        accum = 0;
+        lastaccum = 0;
+        fakemode = false;
+        fakemode_mode = 0;
+        base = 0;
+        left = 0;
+        cursorx = 0;
+        cursory = 0;
+        vselm = 0;
+        vseld = false;
+        vselx = undefined;
+        vsely = undefined;
+        lastkey = undefined;
+        statustext = '';
+        command = '';
+        oldcommand = '';
+        commandleft = 0;
+        savex = undefined;
+        savey = undefined;
+        marks = new Object();
+        registers = new Object();
+        lastreg = '';
+        lastcommand = undefined;
+        lastmotion = undefined;
+        lastsearch = undefined;
+        yank_buffer = undefined;
+        cursoriv = undefined;
+        drawiv = undefined;
+        palette = undefined;
+        term_save_h.length = 0;
+        term_save_ss = undefined;
+        term_save_mc = undefined;
+        term_save_kd = undefined;
+        term_save_kp = undefined;
+        term_save_rs = undefined;
+        term_save_op = undefined;
+        file = new Array();
+        tags = new Array();
+        if (!term_rows || term_rows < 2) term_rows = 24;
+        if (!term_cols || term_cols < 2) term_cols = 80;
         if (options) {
             if (typeof options.onSave == 'function') {
                 onSave = options.onSave;
@@ -3699,6 +3757,7 @@ var vi = (function() {
                 onExit = options.onExit;
             }
         }
+
 
 
 
@@ -3717,7 +3776,6 @@ var vi = (function() {
         } else {
             html = false;
         }
-
         // okay, find EVERYTHING inside body and display none it
         /*
         var z;
