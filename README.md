@@ -1,6 +1,7 @@
 # jsvi
 
 [![npm version](https://img.shields.io/npm/v/jsvi.svg)](https://www.npmjs.com/package/jsvi)
+[![JSDelivr CDN download](https://data.jsdelivr.com/v1/package/npm/jsvi/badge)](https://www.jsdelivr.com/package/npm/jsvi)
 [![CI](https://github.com/jcubic/jsvi/actions/workflows/ci.yml/badge.svg)](https://github.com/jcubic/jsvi/actions/workflows/ci.yml)
 [![Coverage Status](https://coveralls.io/repos/github/jcubic/jsvi/badge.svg)](https://coveralls.io/github/jcubic/jsvi)
 
