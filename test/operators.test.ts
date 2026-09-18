@@ -36,7 +36,7 @@ describe('operators', () => {
         cleanup(c2);
         const c3 = newEditor('hello world');
         press(c3.ed, 'd'); press(c3.ed, '$');
-        expect(c3.ed.freeze()).toBe('\n');
+        expect(c3.ed.freeze()).toBe('');
         cleanup(c3);
     });
     it('cc cw C', () => {

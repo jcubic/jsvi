@@ -83,7 +83,7 @@ describe('motions', () => {
     it('gg G and NG', () => {
         const c = newEditor('a\nb\nc\nd\ne');
         press(c.ed, 'G'); press(c.ed, 'x');
-        expect(c.ed.freeze()).toBe('a\nb\nc\nd\n\n');
+        expect(c.ed.freeze()).toBe('a\nb\nc\nd\n');
         cleanup(c);
         const c2 = newEditor('a\nb\nc\nd\ne');
         // 3G -> line 3

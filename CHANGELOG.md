@@ -12,6 +12,7 @@
 * fix `term_rows`/`term_cols` zero in headless/jsdom causing cursor drift after insert
 * fix stale closure state leaking between `createEditor` instances
 * fix `Esc` not exiting insert mode when sent via keydown/synth path
+* fix `term_freeze` adding extra trailing newline when last line already empty (Unix save)
 
 ## 0.1.0
 ### Features

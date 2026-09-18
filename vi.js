@@ -346,11 +346,12 @@ var vi = (function() {
         q.style.position = 'fixed';
     }
     function term_freeze() {
-        var i;
-        var o = '';
-        for (i = 0; i < file.length; i++) {
-            o += _rtfl(i)+"\n";
-        }
+        if (file.length === 0) return '';
+        var parts = [];
+        for (var i = 0; i < file.length; i++) parts.push(_rtfl(i));
+        var o = parts.join("\n");
+        // Unix: ensure single trailing newline, but not if last line already empty
+        if (file[file.length - 1] !== '') o += "\n";
         return o;
     }
     function term_thaw(s) {
