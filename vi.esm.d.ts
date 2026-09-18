@@ -7,8 +7,8 @@
  */
 
 export interface ViOptions {
-    /** Called with the current buffer contents when the user saves (`:w`). */
-    onSave?: (content: string) => void;
+    /** Called when the user saves (`:w`). */
+    onSave?: () => void;
     /** Called when the user exits the editor (`:q`). */
     onExit?: () => void;
     /** Foreground (text) color; requires `backgroundColor` to also be set. */

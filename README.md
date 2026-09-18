@@ -23,8 +23,8 @@ import 'jsvi/vi.css';
 
 const textarea = document.querySelector('#editor');
 const editor = vi(textarea, {
-    onSave(content) {
-        console.log('saved:', content);
+    onSave() {
+        console.log('saved:', textarea.value);
     },
     onExit() {
         console.log('editor closed');
@@ -56,7 +56,7 @@ UI and returns an editor instance. Options:
 
 | Option            | Type                       | Description                              |
 |-------------------|----------------------------|-------------------------------------------|
-| `onSave`          | `(content: string) => void` | Called with the buffer contents on `:w`  |
+| `onSave`          | `() => void`                | Called when file is saved (`:w`)  |
 | `onExit`          | `() => void`                | Called when the editor is closed (`:q`)  |
 | `color`           | `string`                    | Foreground color (needs `backgroundColor`) |
 | `backgroundColor` | `string`                    | Background color (needs `color`)         |
