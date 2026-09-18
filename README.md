@@ -19,6 +19,10 @@
 VI editor implemented in JavaScript, which turns any `<textarea>` into a
 full-screen VI-style editor running in the browser.
 
+## Screenshot
+
+![jsVI screenshot](https://github.com/jcubic/jsvi/blob/master/.github/screenshot.png?raw=true)
+
 ## Install
 
 ```bash
