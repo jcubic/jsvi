@@ -3207,10 +3207,31 @@ var vi = (function() {
             } else if (k == 8) {
                 if (!synth) return;
                 // backspace
-                file[cursory+base] = lx.substr(0,lx.length-1)+lz;
-                tags[cursory+base] = gx.substr(0,lx.length-1)+gz;
-                lastinsert = lastinsert.substr(0,lastinsert.length-1);
-                cursorx--;
+                if (!lx && (cursory+base) > 0) {
+                    // at start of line: join with the previous line
+                    var py = cursory+base-1;
+                    var pt = file[py] || '';
+                    var pg = tags[py] || '';
+                    var joinx = pt.length;
+                    file[py] = pt + lz;
+                    tags[py] = pg + gz;
+                    var jj;
+                    for (jj = cursory+base+1; jj < file.length; jj++) {
+                        file[jj-1] = file[jj];
+                        tags[jj-1] = tags[jj];
+                    }
+                    file = _pop(file);
+                    tags = _pop(tags);
+                    lastinsert = lastinsert.substr(0,lastinsert.length-1);
+                    cursory--;
+                    cursorx = joinx;
+                    left = 0;
+                } else {
+                    file[cursory+base] = lx.substr(0,lx.length-1)+lz;
+                    tags[cursory+base] = gx.substr(0,lx.length-1)+gz;
+                    lastinsert = lastinsert.substr(0,lastinsert.length-1);
+                    cursorx--;
+                }
             } else {
                 if (kc == '') return;
                 file[cursory+base] = lx+kc+ly;
