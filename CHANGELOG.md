@@ -11,6 +11,7 @@
 * fix `o`/`O`/`i`/`R`/`S`/`s` inserting command character due to missing return
 * fix `term_rows`/`term_cols` zero in headless/jsdom causing cursor drift after insert
 * fix stale closure state leaking between `createEditor` instances
+* fix `Esc` not exiting insert mode when sent via keydown/synth path
 
 ## 0.1.0
 ### Features

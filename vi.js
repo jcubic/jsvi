@@ -2671,7 +2671,7 @@ var vi = (function() {
             kc = 'x';
             lk = undefined;
             lastkey = undefined;
-        } else if (synth && k != 8) {
+        } else if (synth && k != 8 && k != 27 && !(k == 91 && ctrl)) {
             return;
         }
 

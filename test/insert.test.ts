@@ -139,6 +139,26 @@ describe('insert mode entry points', () => {
         expect(editor.freeze()).toBe('hello\nworld\n');
         cleanup({ textarea, editor });
     });
+
+    it('Esc via keydown (synth) also exits insert mode', () => {
+        const { textarea, editor } = newEditor();
+        press(editor, 'i');
+        type(editor, 'X');
+        key(editor, 27); // Esc as keydown (synth=true, k=27)
+        press(editor, 'x');
+        expect(editor.freeze()).toBe('hello\nworld\n');
+        cleanup({ textarea, editor });
+    });
+
+    it('Ctrl-[ exits insert mode', () => {
+        const { textarea, editor } = newEditor();
+        press(editor, 'i');
+        type(editor, 'X');
+        key(editor, 91, { ctrlKey: true });
+        press(editor, 'x');
+        expect(editor.freeze()).toBe('hello\nworld\n');
+        cleanup({ textarea, editor });
+    });
 });
 
 describe('backspace', () => {
