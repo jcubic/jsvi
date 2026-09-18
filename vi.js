@@ -82,6 +82,7 @@ var vi = (function() {
     var backing;
 
     var fakemode;
+    var fakemode_mode;
 
     var tagstyle = 0;
     var line_height = 0;
@@ -2309,7 +2310,11 @@ var vi = (function() {
         if (fakemode || mode === 0) {
             vselm = 0;
             statustext = '';
-            mode = 0;
+            // fakemode translates convenience keys (arrows, Home/End,
+            // Delete) into vi motions/commands regardless of the mode
+            // the user was actually in; restore that mode afterwards
+            // instead of always dropping back to command mode.
+            mode = fakemode ? fakemode_mode : 0;
         } else {
             if (e.keyCode == 27) { // escape
                 vselm = 0;
@@ -2409,6 +2414,7 @@ var vi = (function() {
         }
 
         fakemode = false;
+        fakemode_mode = mode;
 
         // emacsen
         if (emacsen && meta && (kc == 'x' || kc == 'X')) {
