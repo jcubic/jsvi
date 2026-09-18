@@ -2,8 +2,35 @@
   "name": "jsvi",
   "version": "0.1.0",
   "description": "VI Editor implemented in JavaScript for use in Browser",
-  "main": "vi.js",
+  "type": "module",
+  "main": "vi.esm.js",
+  "module": "vi.esm.js",
+  "types": "vi.esm.d.ts",
+  "jsdelivr": "vi.js",
+  "unpkg": "vi.js",
+  "exports": {
+    ".": {
+      "types": "./vi.esm.d.ts",
+      "import": "./vi.esm.js",
+      "default": "./vi.js"
+    },
+    "./vi.css": "./vi.css",
+    "./vi.js": "./vi.js"
+  },
+  "files": [
+    "vi.js",
+    "vi.esm.js",
+    "vi.esm.d.ts",
+    "vi.css"
+  ],
   "scripts": {
+    "build": "node scripts/build-esm.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
+    "pretest": "npm run build",
+    "pretypecheck": "npm run build"
   },
   "repository": {
     "type": "git",
@@ -22,5 +49,14 @@
   "bugs": {
     "url": "https://github.com/jcubic/jsvi/issues"
   },
-  "homepage": "https://github.com/jcubic/jsvi#readme"
+  "homepage": "https://github.com/jcubic/jsvi#readme",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^5.0.1",
+    "jsdom": "^29.1.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1"
+  }
 }

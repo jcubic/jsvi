@@ -2121,12 +2121,12 @@ var vi = (function() {
 
         var z = x.substr(cursorx, 1);
         var q = g.substr(cursorx, 1).charCodeAt(0);
-        if (cursorx >= x.length || z == undefined || z == "\240" || z == '')
+        if (cursorx >= x.length || z == undefined || z == "\xA0" || z == '')
             z = ' ';
 
         if (cursor._lastch != z || cursor._lastgh != q) {
             if (z == ' ') {
-                z = "\240";
+                z = "\xA0";
                 q = 0;
             }
             while (cursor.firstChild)
@@ -3333,7 +3333,7 @@ var vi = (function() {
                 g = _mxs(x.length, cx);
             } else if (x == undefined) {
                 x = '~';
-                g = "\010";
+                g = "\x08";
             } else {
                 zleft = left;
                 g = tags[y+base];
@@ -3406,9 +3406,9 @@ var vi = (function() {
             }
 
             vj = 0;
-            g += "\377"; // terminate
+            g += "\xFF"; // terminate
             x += " ";
-            x = x.replace(/ /g, "\240");
+            x = x.replace(/ /g, "\xA0");
 
             if (term.childNodes.length > y) {
                 zx = term.childNodes[y];
@@ -3524,7 +3524,7 @@ var vi = (function() {
                 if (zx != ax) zx.appendChild(ax);
                 vj = j;
             }
-            ax.appendChild(document.createTextNode("\240"));
+            ax.appendChild(document.createTextNode("\xA0"));
             zx._cachex = x;
             zx._cacheg = g;
             if (term.childNodes.length <= y) {
