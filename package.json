@@ -30,7 +30,8 @@
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
     "pretest": "npm run build",
-    "pretypecheck": "npm run build"
+    "pretypecheck": "npm run build",
+    "prepack": "npm run build"
   },
   "repository": {
     "type": "git",
