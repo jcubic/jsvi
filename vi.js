@@ -3644,7 +3644,7 @@ var vi = (function() {
         var r = line_height;
         if (!line_height) r = cursor.offsetHeight-1; // 1 px overlap
         var nh = (h/r);
-        term_rows = Math.ceil(nh);
+        term_rows = Math.floor(nh);
         if (!term_rows || !isFinite(term_rows) || term_rows < 2) term_rows = 24;
         term_win_height = h;
 

@@ -1,6 +1,7 @@
 ## 0.2.1
 ### Bugfix
 * fix `ESC` losing focus in iframe
+* fix calculating number of rows
 
 ## 0.2.0
 ### Features
