@@ -1,6 +1,6 @@
 ## 0.2.1
 ### Bugfix
-* fix `ESC` losing focus in iframe by adding `preventDefault`/`stopPropagation` in `term_keyfix` and insert-mode exit
+* fix `ESC` losing focus in iframe
 
 ## 0.2.0
 ### Features
