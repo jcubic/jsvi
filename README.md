@@ -16,8 +16,8 @@
 
 </div>
 
-VI editor implemented in JavaScript, which turns any `<textarea>` into a
-full-screen VI-style editor running in the browser.
+Zero dependency, VI editor implemented in JavaScript, which turns any `<textarea>` into a
+full-screen VI-style editor running in the browser. It's a maintained fork of a project created by Internet Connection, Inc.
 
 ## Screenshot
 
@@ -39,6 +39,8 @@ import 'jsvi/vi.css';
 
 const textarea = document.querySelector('#editor');
 const editor = vi(textarea, {
+    color: '#ccc',
+    backgroundColor: '#000',
     onSave() {
         console.log('contents:', textarea.value);
         console.log('contents:', editor.freeze());
