@@ -159,6 +159,22 @@ describe('insert mode entry points', () => {
         expect(editor.freeze()).toBe('hello\nworld\n');
         cleanup({ textarea, editor });
     });
+
+    it('Esc preventDefault stops iframe losing focus', () => {
+        const { textarea, editor } = newEditor();
+        press(editor, 'i');
+        let pd = false, sp = false;
+        const ev = { which: 27, charCode: 27, preventDefault: () => { pd = true; }, stopPropagation: () => { sp = true; } } as unknown as KeyboardEvent;
+        editor.keypress_inner(ev, false);
+        expect(pd).toBe(true);
+        expect(sp).toBe(true);
+        // also via keyfix path
+        pd = false; sp = false;
+        const ev2 = { which: 27, keyCode: 27, preventDefault: () => { pd = true; }, stopPropagation: () => { sp = true; } } as unknown as KeyboardEvent;
+        editor.keyfix(ev2);
+        expect(pd).toBe(true);
+        cleanup({ textarea, editor });
+    });
 });
 
 describe('backspace', () => {

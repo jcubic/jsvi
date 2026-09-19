@@ -2292,7 +2292,7 @@ var vi = (function() {
             else if (e.DOM_VK_RIGHT == ch) ch = 57376;
         }
 
-        if (ch == 8 || ch == 9 || ch == 37 || ch == 39
+        if (ch == 8 || ch == 9 || ch == 27 || ch == 37 || ch == 39
         || ch == 38 || ch == 40 || ch == 127
         || ch == 33 || ch == 34 || ch == 36
         || ch == 35 || ch == 45 || ch == 46
@@ -3115,6 +3115,8 @@ var vi = (function() {
                 }
                 accum = 0;
             } else if (k == 27 || (k == 91 && ctrl)) { // escape or ^[
+                if (e.preventDefault) e.preventDefault();
+                if (e.stopPropagation) e.stopPropagation();
                 vselm = 0;
                 statustext = '';
                 mode = 0;
@@ -3123,7 +3125,8 @@ var vi = (function() {
             }
             term_scrollto();
         } else if ((k == 27 || (k == 91 && ctrl))) { // escape or ^[
-
+            if (e.preventDefault) e.preventDefault();
+            if (e.stopPropagation) e.stopPropagation();
             vselm = 0;
             statustext = '';
             if (command != '') {
