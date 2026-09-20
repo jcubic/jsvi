@@ -1,7 +1,10 @@
+## 0.2.2
+* fix calculating number of rows
+* fix `ESC` in cross-origin iFrame
+
 ## 0.2.1
 ### Bugfix
-* fix `ESC` losing focus in iframe
-* fix calculating number of rows
+* fix `ESC` losing focus in an iframe
 
 ## 0.2.0
 ### Features
