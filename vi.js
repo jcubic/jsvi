@@ -2321,14 +2321,20 @@ var vi = (function() {
     }
 
     function term_keyup(e) {
-        if (fakemode || mode === 0) {
+        // fakemode is consumed here and must be cleared, mirroring the
+        // reset in term_keypress_inner -- otherwise it survives into the
+        // next keyup (e.g. a subsequent Escape) and wrongly routes it into
+        // the mode-restore branch below instead of the real Escape handler.
+        var was_fakemode = fakemode;
+        fakemode = false;
+        if (was_fakemode || mode === 0) {
             vselm = 0;
             statustext = '';
             // fakemode translates convenience keys (arrows, Home/End,
             // Delete) into vi motions/commands regardless of the mode
             // the user was actually in; restore that mode afterwards
             // instead of always dropping back to command mode.
-            mode = fakemode ? fakemode_mode : 0;
+            mode = was_fakemode ? fakemode_mode : 0;
         } else {
             if (e.keyCode == 27) { // escape
                 vselm = 0;
