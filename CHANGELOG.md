@@ -1,4 +1,5 @@
 ## 0.2.2
+### Bugfix
 * fix calculating number of rows
 * fix `ESC` in cross-origin iFrame
 * fix `ESC` not exiting insert mode after an arrow key
