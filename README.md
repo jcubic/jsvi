@@ -17,7 +17,7 @@
 </div>
 
 Zero dependency, VI editor implemented in JavaScript, which turns any `<textarea>` into a
-full-screen VI-style editor running in the browser. It's a maintained fork of a project created by Internet Connection, Inc.
+full-screen VI-style editor running in the browser. It's a maintained fork of a project created by [Internet Connection, Inc.](https://web.archive.org/web/20180318135818/http://gpl.internetconnection.net/vi/).
 
 ## Screenshot
 
