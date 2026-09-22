@@ -1,6 +1,6 @@
 .editor {
-    color: #aaa;
-    background-color: #000;
+    color: var(--color, #aaa);
+    background-color: var(--background, #000);
     position: absolute;
     top: 0px;
     left: 0px;
@@ -20,6 +20,52 @@
     padding: 0;
 }
 .print, .editor, .editorcursor { display: none; }
+.editorcursor {
+    color: var(--vi-original-color, #aaa);
+    background-color: var(--vi-original-background, #000);
+    animation: var(--vi-animation, vi-blink) 1s infinite linear;
+}
+/* BLINK ANIMATION -- inverts fg/bg, like a solid block cursor */
+@keyframes vi-blink {
+    0%, 50% {
+        background-color: var(--vi-original-color, #aaa);
+        color: var(--vi-original-background, #000);
+    }
+    50.1%, 100% {
+        background-color: var(--vi-original-background, #000);
+        color: var(--vi-original-color, #aaa);
+    }
+}
+/* BAR ANIMATION -- thin vertical line on the left edge, text stays normal */
+@keyframes vi-bar {
+    0%, 50% {
+        box-shadow: calc(var(--vi-line-thickness, 2) * -1px) 0 0 -1px var(--vi-original-color, #aaa);
+    }
+    50.1%, 100% {
+        box-shadow: none;
+    }
+}
+/* UNDERLINE ANIMATION -- thin horizontal line under the character */
+@keyframes vi-underline {
+    0%, 50% {
+        box-shadow: 0 calc(var(--vi-line-thickness, 2) * 1px) 0 var(--vi-original-color, #aaa);
+    }
+    50.1%, 100% {
+        box-shadow: none;
+    }
+}
+/* NONE ANIMATION -- static solid block cursor, no blinking */
+@keyframes vi-none {
+    0%, 100% {
+        background-color: var(--vi-original-color, #aaa);
+        color: var(--vi-original-background, #000);
+    }
+}
+@media (prefers-reduced-motion) {
+    :root {
+        --vi-animation: vi-none;
+    }
+}
 @media print {
     .editor { display:none !important; }
     html,body { overflow:auto !important; }

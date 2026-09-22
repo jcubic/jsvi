@@ -89,6 +89,35 @@ The returned editor instance exposes methods such as `freeze()` /
 editor). See [`vi.esm.d.ts`](./vi.esm.d.ts) for the full public
 interface.
 
+`color`/`backgroundColor` are applied inline on the editor, so they
+override the `--color`/`--background` CSS custom properties described
+below. To theme the editor from CSS instead (e.g. to share a theme
+with [jQuery Terminal](https://terminal.jcubic.pl/), which uses the
+same variable names), set `--color`/`--background` on an ancestor and
+omit `color`/`backgroundColor` from the options.
+
+## Cursor style
+
+The cursor blinks using a CSS animation, the same mechanism as
+[jQuery Terminal](https://terminal.jcubic.pl/) (with `vi-`-prefixed
+names so the two don't collide if used on the same page). Pick a
+style by setting the `--vi-animation` custom property:
+
+```css
+:root {
+    --vi-animation: vi-blink;     /* solid block cursor (default) */
+    --vi-animation: vi-underline; /* thin line under the character */
+    --vi-animation: vi-bar;       /* thin vertical bar, like a text caret */
+    --vi-animation: vi-none;      /* static cursor, no blinking */
+}
+```
+
+`vi-bar`/`vi-underline` use `--vi-line-thickness` (default `2`, in
+pixels) for the line's thickness. When the OS-level "reduce motion"
+accessibility preference is set, `--vi-animation` defaults to
+`vi-none` (a static, non-blinking cursor) unless overridden by a
+later, equally-specific `:root` rule.
+
 ## Development
 
 ```bash

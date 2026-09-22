@@ -108,7 +108,7 @@ export interface ViEditor {
     keypress(event: KeyboardEvent): boolean;
     keypress_inner(event: KeyboardEvent, synth?: boolean): boolean | undefined;
 
-    draw_cursor(toggle?: boolean): void;
+    draw_cursor(): void;
     redraw(): void;
     resize(): void;
 

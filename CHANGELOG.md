@@ -1,4 +1,7 @@
 ## 0.2.2
+### Features
+* switch cursor blinking from a JS interval to a CSS animation (`--vi-animation`: `vi-blink`/`vi-underline`/`vi-bar`/`vi-none`), same mechanism as jQuery Terminal, honoring `prefers-reduced-motion`
+* default `.editor` color/background to the `--color`/`--background` CSS custom properties (same names as jQuery Terminal), and apply `color`/`backgroundColor` options to the editor background too, not just the cursor/text palette
 ### Bugfix
 * fix calculating number of rows
 * fix `ESC` in cross-origin iFrame

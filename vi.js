@@ -99,7 +99,6 @@ var vi = (function() {
 
     var lastcommand;
     var lastmotion;
-    var cursoriv;
     var drawiv;
 
     var term;
@@ -3273,22 +3272,13 @@ var vi = (function() {
         return;
     }
 
-    function _redraw_cursor() {
-        term_draw_cursor(true);
-        _update_backing();
-    }
-
-    function term_draw_cursor(tf) {
-        // maybe use vertical bar if mode==1 hrm?
-        if (!tf || !cursor._opaque) {
-            cursor._opaque = true;
-            cursor.style.color = palette[1];
-            cursor.style.backgroundColor = palette[0];
-        } else {
-            cursor._opaque = false;
-            cursor.style.color = palette[0];
-            cursor.style.backgroundColor = palette[1];
-        }
+    function term_draw_cursor() {
+        // blinking is driven by the vi-blink CSS animation (see vi.css); this
+        // just restarts it so the cursor is solid again right after a move
+        // or a keystroke, instead of possibly mid-blink.
+        cursor.style.animation = 'none';
+        void cursor.offsetHeight; // force reflow so the animation restarts
+        cursor.style.animation = '';
     }
 
     function _redraw_term_force() {
@@ -3664,11 +3654,6 @@ var vi = (function() {
         term_redraw();
     }
     function editor_disable(sav) {
-        if (cursoriv) {
-            window.clearInterval(cursoriv);
-            cursoriv = undefined;
-        }
-
         _cbrestore();
 
         if (term._formelement) {
@@ -3748,7 +3733,6 @@ var vi = (function() {
         lastmotion = undefined;
         lastsearch = undefined;
         yank_buffer = undefined;
-        cursoriv = undefined;
         drawiv = undefined;
         palette = undefined;
         term_save_h.length = 0;
@@ -3866,8 +3850,6 @@ var vi = (function() {
 
         textarea.parentNode.insertBefore(editor_wrapper, textarea);
 
-        cursoriv = window.setInterval(_redraw_cursor, 300);
-
         term.style.position = 'absolute';
         term.style.top = padding + 'px';
         term.style.left = padding + 'px';
@@ -3913,7 +3895,6 @@ var vi = (function() {
         _zmp(cursor);
         cursor.style.overflow = 'hidden';
         cursor.innerHTML = 'X';
-        cursor._opaque = false;
         cursor._lasty = -1;
         cursor._lastx = -1;
         cursor._lastch = '-xyz-';
@@ -3923,6 +3904,12 @@ var vi = (function() {
             palette = new Array();
             palette[0] = options.color;
             palette[1] = options.backgroundColor;
+            // the .editor background is a fixed color in vi.css; without
+            // this, options.color/backgroundColor only ever reached
+            // individual character spans (via palette), leaving the empty
+            // space around the text on the CSS default
+            term.style.color = options.color;
+            term.style.backgroundColor = options.backgroundColor;
         } else if (document.defaultView && document.defaultView.getComputedStyle) {
             palette = new Array();
             var cs = document.defaultView.getComputedStyle(term, null);
@@ -3933,6 +3920,11 @@ var vi = (function() {
             var cs = window.getComputedStyle(term, null);
             palette[0] = cs.color;
             palette[1] = cs.backgroundColor;
+        }
+        if (palette) {
+            // consumed by the vi-blink CSS animation in vi.css
+            cursor.style.setProperty('--vi-original-color', palette[0]);
+            cursor.style.setProperty('--vi-original-background', palette[1]);
         }
 
         if (emacsen) {
