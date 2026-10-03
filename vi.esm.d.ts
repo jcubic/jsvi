@@ -99,10 +99,16 @@ export interface ViEditor {
     calcx(): void;
     scrollto(): void;
 
-    /** Inserts a new empty line at `line`. */
-    insert(line: number, content: string): void;
-    /** Pastes the yank/named register `ign` after (or before) the cursor. */
-    paste(after: boolean, ign?: string): void;
+    /**
+     * Inserts a new empty line at `line`. `content` is accepted for backwards
+     * compatibility but ignored - the line is always opened empty.
+     */
+    insert(line: number, content?: string): void;
+    /**
+     * Pastes after (or before) the cursor. With `text` that string is pasted;
+     * without it, the contents of the current register are used.
+     */
+    paste(after: boolean, text?: string): void;
 
     keyfix(event: KeyboardEvent): boolean;
     keypress(event: KeyboardEvent): boolean;

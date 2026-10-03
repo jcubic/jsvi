@@ -1,134 +1,273 @@
-import { describe, expect, it } from 'vitest';
-import createEditor, { type ViEditor } from '../vi.esm.js';
-import { press, type } from './keys.js';
+import { afterEach, describe, expect, it } from 'vitest';
+import { cleanupEditors, cursorMarker, keys, newEditor } from './harness.js';
 
-function newEditor(content: string) {
-    const ta = document.createElement('textarea');
-    ta.value = content;
-    document.body.appendChild(ta);
-    const ed = createEditor(ta);
-    return { ta, ed };
-}
-function cleanup(c: { ta: HTMLTextAreaElement; ed: ViEditor }) {
-    c.ed.disable(false);
-    c.ta.remove();
-}
-function at(ed: ViEditor, motion: string) {
-    // helper: move then delete to EOL to reveal column, but we use D trick externally
-    for (const ch of motion) press(ed, ch);
-}
+afterEach(cleanupEditors);
 
-describe('motions', () => {
-    it('h/j/k/l basic and clamp', () => {
-        const c = newEditor('abc\ndef\nghi');
-        // start 0,0 -> l -> at b, x deletes b
-        press(c.ed, 'l'); press(c.ed, 'x');
-        expect(c.ed.freeze()).toBe('ac\ndef\nghi\n');
-        cleanup(c);
-        const c2 = newEditor('abc\ndef\nghi');
-        press(c2.ed, 'h'); press(c2.ed, 'x'); // h at 0,0 clamps, deletes a
-        expect(c2.ed.freeze()).toBe('bc\ndef\nghi\n');
-        cleanup(c2);
-        const c3 = newEditor('abc\ndef\nghi');
-        press(c3.ed, 'j'); press(c3.ed, 'x'); // down to d
-        expect(c3.ed.freeze()).toBe('abc\nef\nghi\n');
-        cleanup(c3);
-        const c4 = newEditor('abc\ndef\nghi');
-        press(c4.ed, 'j'); press(c4.ed, 'k'); press(c4.ed, 'x'); // back to a
-        expect(c4.ed.freeze()).toBe('bc\ndef\nghi\n');
-        cleanup(c4);
+/**
+ * Motions are observed either by deleting the character under the cursor with
+ * `x`, or - where the deletion would be ambiguous - with `cursorMarker`, which
+ * types a `|` at the cursor.
+ *
+ * `it.fails` marks behaviour that differs from vi. Those tests assert what vi
+ * does, so each one starts passing the moment the gap is closed, at which
+ * point it should become a plain `it`.
+ */
+
+describe('character motions', () => {
+    it('l moves one column right', () => {
+        const { editor } = newEditor('abc\ndef');
+        keys(editor, 'lx');
+        expect(editor.freeze()).toBe('ac\ndef\n');
     });
 
-    it('w b e word motions', () => {
-        const c = newEditor('hello world foo');
-        press(c.ed, 'w'); press(c.ed, 'x'); // w -> world, delete w
-        expect(c.ed.freeze()).toBe('hello orld foo\n');
-        cleanup(c);
-        const c2 = newEditor('hello world foo');
-        press(c2.ed, 'w'); press(c2.ed, 'w'); press(c2.ed, 'x'); // to foo
-        expect(c2.ed.freeze()).toBe('hello world oo\n');
-        cleanup(c2);
-        const c3 = newEditor('hello world foo');
-        // go to end via $ then b
-        press(c3.ed, '$'); press(c3.ed, 'b'); press(c3.ed, 'x');
-        // $ at end, b -> start of foo (actually world? let's check: from end, b goes to foo)
-        // delete char at foo start -> 'f' removed
-        expect(c3.ed.freeze()).toBe('hello world oo\n');
-        cleanup(c3);
-        const c4 = newEditor('hello world');
-        press(c4.ed, 'w'); // at world
-        press(c4.ed, 'e'); press(c4.ed, 'x'); // e -> end of world
-        // after w then e, cursor at d of world, x deletes d
-        expect(c4.ed.freeze()).toBe('hello worl\n');
-        cleanup(c4);
+    it('h moves one column left', () => {
+        const { editor } = newEditor('abc\ndef');
+        keys(editor, 'llhx');
+        expect(editor.freeze()).toBe('ac\ndef\n');
     });
 
-    it('0 $ ^', () => {
-        const c = newEditor('  hello');
-        press(c.ed, '$'); press(c.ed, 'x'); // $ -> last char o
-        expect(c.ed.freeze()).toBe('  hell\n');
-        cleanup(c);
-        const c2 = newEditor('  hello');
-        press(c2.ed, '$'); press(c2.ed, '0'); press(c2.ed, 'x'); // 0 -> start
-        // deleting at 0 removes first space
-        expect(c2.ed.freeze()).toBe(' hello\n');
-        cleanup(c2);
-        const c3 = newEditor('  hello');
-        press(c3.ed, '^');
-        // just verify ^ doesn't crash and buffer intact
-        expect(c3.ed.freeze()).toBe('  hello\n');
-        cleanup(c3);
+    it('h stops at column 0 instead of wrapping to the previous line', () => {
+        const { editor } = newEditor('abc\ndef');
+        keys(editor, 'hhhx');
+        expect(editor.freeze()).toBe('bc\ndef\n');
     });
 
-    it('gg G and NG', () => {
-        const c = newEditor('a\nb\nc\nd\ne');
-        press(c.ed, 'G'); press(c.ed, 'x');
-        expect(c.ed.freeze()).toBe('a\nb\nc\nd\n');
-        cleanup(c);
-        const c2 = newEditor('a\nb\nc\nd\ne');
-        // 3G -> line 3
-        press(c2.ed, '3'); press(c2.ed, 'G'); press(c2.ed, 'x');
-        expect(c2.ed.freeze()).toBe('a\nb\n\n' + 'd\ne\n');
-        cleanup(c2);
-        const c3 = newEditor('a\nb\nc\nd\ne');
-        press(c3.ed, 'G'); press(c3.ed, 'g'); press(c3.ed, 'g'); press(c3.ed, 'x');
-        expect(c3.ed.freeze()).toBe('\nb\nc\nd\ne\n');
-        cleanup(c3);
+    it('j moves down a line', () => {
+        const { editor } = newEditor('abc\ndef\nghi');
+        keys(editor, 'jx');
+        expect(editor.freeze()).toBe('abc\nef\nghi\n');
     });
 
-    it('f F t T ;', () => {
-        const c = newEditor('abxcdxef');
-        press(c.ed, 'f'); press(c.ed, 'x'); // f x -> first x
-        press(c.ed, 'x');
-        expect(c.ed.freeze()).toBe('abcdxef\n');
-        cleanup(c);
-        const c2 = newEditor('abxcdxef');
-        press(c2.ed, 'f'); press(c2.ed, 'x'); // to first x
-        press(c2.ed, 'x'); // delete it
-        expect(c2.ed.freeze()).toBe('abcdxef\n');
-        cleanup(c2);
-        const c3 = newEditor('abxcdxef');
-        press(c3.ed, 'f'); press(c3.ed, 'x');
-        press(c3.ed, ';'); // repeat
-        // just verify ; doesn't crash and leaves buffer in valid state
-        expect(c3.ed.freeze()).toContain('ab');
-        cleanup(c3);
+    it('k moves up a line', () => {
+        const { editor } = newEditor('abc\ndef\nghi');
+        keys(editor, 'jkx');
+        expect(editor.freeze()).toBe('bc\ndef\nghi\n');
     });
 
-    it('{ } paragraph', () => {
-        const c = newEditor('a\n\nb\n\nc');
-        press(c.ed, '}'); press(c.ed, 'x');
-        // } goes to blank line after a? then x on blank line is no-op? just ensure no crash and cursor moved
-        expect(c.ed.freeze()).toContain('a');
-        cleanup(c);
+    it('k stops on the first line', () => {
+        const { editor } = newEditor('abc\ndef');
+        keys(editor, 'kkx');
+        expect(editor.freeze()).toBe('bc\ndef\n');
+    });
+});
+
+describe('word motions', () => {
+    it('w moves to the start of the next word', () => {
+        const { editor } = newEditor('hello world foo');
+        keys(editor, 'wx');
+        expect(editor.freeze()).toBe('hello orld foo\n');
     });
 
-    it('% matching bracket', () => {
-        const c = newEditor('(hello)');
-        press(c.ed, '%');
-        press(c.ed, 'x');
-        // % doesn't crash; verify buffer changed in some way (or not) without throwing
-        expect(c.ed.freeze().length).toBeGreaterThan(0);
-        cleanup(c);
+    it('w repeats across words', () => {
+        const { editor } = newEditor('hello world foo');
+        keys(editor, 'wwx');
+        expect(editor.freeze()).toBe('hello world oo\n');
+    });
+
+    it('b moves back to the start of the current word', () => {
+        const { editor } = newEditor('hello world foo');
+        keys(editor, '$bx');
+        expect(editor.freeze()).toBe('hello world oo\n');
+    });
+
+    it('e moves to the last character of the word', () => {
+        const { editor } = newEditor('hello world');
+        keys(editor, 'wex');
+        expect(editor.freeze()).toBe('hello worl\n');
+    });
+});
+
+describe('line motions', () => {
+    it('$ moves to the last character of the line', () => {
+        const { editor } = newEditor('  hello');
+        keys(editor, '$x');
+        expect(editor.freeze()).toBe('  hell\n');
+    });
+
+    it('0 moves to column 0 including leading whitespace', () => {
+        const { editor } = newEditor('  hello');
+        keys(editor, '$0x');
+        expect(editor.freeze()).toBe(' hello\n');
+    });
+
+    // jsvi has no command-mode handler for `^` at all, so the cursor does not
+    // move and `x` deletes the leading space instead of the `h`
+    it.fails('^ moves to the first non-blank character', () => {
+        const { editor } = newEditor('  hello');
+        keys(editor, '$^x');
+        expect(editor.freeze()).toBe('  ello\n');
+    });
+});
+
+describe('buffer motions', () => {
+    it('G moves to the last line', () => {
+        const { editor } = newEditor('a\nb\nc\nd\ne');
+        keys(editor, 'Gx');
+        expect(editor.freeze()).toBe('a\nb\nc\nd\n');
+    });
+
+    it('NG moves to the given line', () => {
+        const { editor } = newEditor('a\nb\nc\nd\ne');
+        keys(editor, '3Gx');
+        expect(editor.freeze()).toBe('a\nb\n\nd\ne\n');
+    });
+
+    it('gg moves back to the first line', () => {
+        const { editor } = newEditor('a\nb\nc\nd\ne');
+        keys(editor, 'Gggx');
+        expect(editor.freeze()).toBe('\nb\nc\nd\ne\n');
+    });
+});
+
+describe('find-character motions', () => {
+    it('f jumps forward onto the given character', () => {
+        const { editor } = newEditor('abxcdxef');
+        keys(editor, 'fxx');
+        expect(editor.freeze()).toBe('abcdxef\n');
+    });
+
+    it('F jumps backward onto the given character', () => {
+        const { editor } = newEditor('abxcdxef');
+        keys(editor, '$Fx');
+        expect(cursorMarker(editor)).toBe('abxcd|xef\n');
+    });
+
+    it('F stays put when the character is not behind the cursor', () => {
+        const { editor } = newEditor('abxcdxef');
+        keys(editor, 'Fa');
+        expect(cursorMarker(editor)).toBe('|abxcdxef\n');
+    });
+
+    it('t stops on the character before the target', () => {
+        const { editor } = newEditor('abxcdxef');
+        keys(editor, 'tx');
+        expect(cursorMarker(editor)).toBe('a|bxcdxef\n');
+    });
+
+    it('T stops on the character after the target searching backward', () => {
+        const { editor } = newEditor('abxcdxef');
+        keys(editor, '$Tx');
+        expect(cursorMarker(editor)).toBe('abxcdx|ef\n');
+    });
+
+    // jsvi has no command-mode handler for `;`, so the cursor stays on the
+    // first match instead of advancing to the second `x`
+    it.fails('; repeats the last f', () => {
+        const { editor } = newEditor('abxcdxef');
+        keys(editor, 'fx;');
+        expect(cursorMarker(editor)).toBe('abxcd|xef\n');
+    });
+});
+
+describe('paragraph motions', () => {
+    it('} moves to the next blank line', () => {
+        const { editor } = newEditor('a\n\nb\n\nc');
+        keys(editor, '}');
+        expect(cursorMarker(editor)).toBe('a\n|\nb\n\nc\n');
+    });
+
+    it('} repeats to the following blank line', () => {
+        const { editor } = newEditor('a\n\nb\n\nc');
+        keys(editor, '}}');
+        expect(cursorMarker(editor)).toBe('a\n\nb\n|\nc\n');
+    });
+
+    it('{ moves back to the previous blank line', () => {
+        const { editor } = newEditor('a\n\nb\n\nc');
+        keys(editor, '}}{');
+        expect(cursorMarker(editor)).toBe('a\n|\nb\n\nc\n');
+    });
+
+    it('{ stops at the top of the buffer', () => {
+        const { editor } = newEditor('a\n\nb\n\nc');
+        keys(editor, '{');
+        expect(cursorMarker(editor)).toBe('|a\n\nb\n\nc\n');
+    });
+});
+
+describe('matching bracket (%)', () => {
+    it('jumps from an opening paren to its match', () => {
+        const { editor } = newEditor('a(hello)');
+        keys(editor, '%');
+        expect(cursorMarker(editor)).toBe('a(hello|)\n');
+    });
+
+    it('jumps from an opening bracket to its match', () => {
+        const { editor } = newEditor('a[xy]');
+        keys(editor, '%');
+        expect(cursorMarker(editor)).toBe('a[xy|]\n');
+    });
+
+    it('jumps from an opening brace to its match', () => {
+        const { editor } = newEditor('a{z}');
+        keys(editor, '%');
+        expect(cursorMarker(editor)).toBe('a{z|}\n');
+    });
+
+    // term_vi_bounce's inner scan is `while (x > 0 && x < t.length)`, so it
+    // can never start when the bracket is in column 0 - the cursor does not
+    // move and `x` deletes the `(`
+    it.fails('jumps from a bracket in column 0', () => {
+        const { editor } = newEditor('(hello)');
+        keys(editor, '%x');
+        expect(editor.freeze()).toBe('(hello\n');
+    });
+});
+
+describe('viewport motions', () => {
+    const buffer = Array.from({ length: 20 }, (_, i) => `line${i}`).join('\n');
+
+    function cursorLine(text: string) {
+        return text.split('\n').findIndex(line => line.includes('|'));
+    }
+
+    it('H moves to the top visible line', () => {
+        const { editor } = newEditor(buffer);
+        keys(editor, 'G');
+        keys(editor, 'H');
+        expect(cursorLine(cursorMarker(editor))).toBe(0);
+    });
+
+    it('L moves to the bottom visible line', () => {
+        const { editor } = newEditor(buffer);
+        keys(editor, 'L');
+        expect(cursorLine(cursorMarker(editor))).toBe(19);
+    });
+
+    // the exact line depends on the viewport height, so this asserts only that
+    // M lands strictly between H and L rather than the arithmetic
+    it('M moves between the top and bottom lines', () => {
+        const { editor } = newEditor(buffer);
+        keys(editor, 'M');
+        const line = cursorLine(cursorMarker(editor));
+        expect(line).toBeGreaterThan(0);
+        expect(line).toBeLessThan(19);
+    });
+});
+
+describe('paragraph scanning api', () => {
+    it('skipforward reports a match and moves onto it', () => {
+        const { editor } = newEditor('a\n\nb\n\nc');
+        expect(editor.skipforward(/^[ ]*$/, 0)).toBe(true);
+        expect(cursorMarker(editor)).toBe('a\n|\nb\n\nc\n');
+    });
+
+    it('skipforward reports no match past the end of the buffer', () => {
+        const { editor } = newEditor('a\nb\nc');
+        expect(editor.skipforward(/^[ ]*$/, 0)).toBe(false);
+    });
+
+    it('skipbackward reports a match and moves onto it', () => {
+        const { editor } = newEditor('a\n\nb\n\nc');
+        keys(editor, 'jjj');
+        expect(editor.skipbackward(/^[ ]*$/)).toBe(true);
+        expect(cursorMarker(editor)).toBe('a\n\nb\n|\nc\n');
+    });
+
+    it('skipreverse2 accepts a fuzz argument without disturbing the buffer', () => {
+        const { editor } = newEditor('a\n\nb\n\nc');
+        editor.skipreverse2(/^[ ]*$/, 0);
+        editor.skipreverse2(/^[ ]*$/, 1);
+        expect(editor.freeze()).toBe('a\n\nb\n\nc\n');
     });
 });

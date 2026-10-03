@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import createEditor, { type ViEditor } from '../vi.esm.js';
+import { cleanupEditors, newEditor } from './harness.js';
 import { press, type } from './keys.js';
 
 /**
@@ -180,5 +181,152 @@ describe('re-entering the editor', () => {
         press(second, '\x1b');
         second.command(':wq');
         expect(textarea.value).toBe('Atwo\n');
+    });
+});
+
+describe('state isolation between sessions', () => {
+    afterEach(cleanupEditors);
+
+    // `viflags` holds the rich-text flags alongside the pending-operator ones
+    // (vi.js:151) and is not in the init reset block, so `:F!b` in one session
+    // still applies in the next: the second buffer comes out as "hello<b>Z"
+    it.fails('does not carry rich-text formatting flags into the next session', () => {
+        const first = newEditor('hello', { html: true });
+        first.editor.command(':F!b');
+        press(first.editor, 'A');
+        type(first.editor, 'X');
+        press(first.editor, '\x1b');
+        expect(first.editor.freeze()).toBe('hello<b>X\n');
+        first.editor.disable(false);
+
+        const second = newEditor('hello', { html: true });
+        press(second.editor, 'A');
+        type(second.editor, 'Z');
+        press(second.editor, '\x1b');
+        expect(second.editor.freeze()).toBe('helloZ\n');
+    });
+});
+
+describe('public API surface', () => {
+    afterEach(cleanupEditors);
+
+    it('exposes the documented editor methods', () => {
+        const { editor } = newEditor('hello');
+        for (const method of [
+            'freeze', 'thaw', 'insert', 'delete', 'command', 'disable',
+            'search', 'rsearch', 'paste', 'select', 'operate', 'justify'
+        ] as const) {
+            expect(typeof editor[method]).toBe('function');
+        }
+    });
+});
+
+describe('editor options', () => {
+    afterEach(cleanupEditors);
+
+    it('html true keeps markup as formatting', () => {
+        const { editor } = newEditor('<b>hi</b>', { html: true });
+        expect(editor.freeze()).toContain('<b>');
+        editor.thaw('<u>bye</u>');
+        expect(editor.freeze()).toContain('<u>');
+    });
+
+    it('html false keeps markup as literal text', () => {
+        const { editor } = newEditor('<b>hi</b>', { html: false });
+        expect(editor.freeze()).toBe('<b>hi</b>\n');
+    });
+
+    it('html defaults to false', () => {
+        const { editor } = newEditor('<b>hi</b>');
+        expect(editor.freeze()).toBe('<b>hi</b>\n');
+    });
+
+    it('color and backgroundColor are applied to the editor element', () => {
+        newEditor('hello', { color: 'rgb(255, 0, 0)', backgroundColor: 'rgb(0, 0, 255)' });
+        const term = document.querySelector('.vi-editor .editor') as HTMLElement;
+        expect(term.style.color).toBe('rgb(255, 0, 0)');
+        expect(term.style.backgroundColor).toBe('rgb(0, 0, 255)');
+    });
+
+    it('padding offsets the editor element', () => {
+        newEditor('hello', { padding: 10 });
+        const term = document.querySelector('.vi-editor .editor') as HTMLElement;
+        expect(term.style.top).toBe('10px');
+        expect(term.style.left).toBe('10px');
+    });
+
+    it('padding defaults to zero', () => {
+        newEditor('hello');
+        const term = document.querySelector('.vi-editor .editor') as HTMLElement;
+        expect(term.style.top).toBe('0px');
+    });
+});
+
+describe('onSave and onExit callbacks', () => {
+    afterEach(cleanupEditors);
+
+    it(':w calls onSave and syncs the textarea', () => {
+        const onSave = vi.fn();
+        const { textarea: ta, editor } = newEditor('hello', { onSave });
+        press(editor, 'A');
+        type(editor, '!');
+        press(editor, '\x1b');
+        editor.command(':w');
+        expect(onSave).toHaveBeenCalled();
+        expect(ta.value).toBe('hello!\n');
+    });
+
+    it(':q calls onExit without onSave', () => {
+        const onSave = vi.fn();
+        const onExit = vi.fn();
+        const { editor } = newEditor('hello', { onSave, onExit });
+        editor.command(':q');
+        expect(onExit).toHaveBeenCalled();
+        expect(onSave).not.toHaveBeenCalled();
+    });
+
+    it(':wq calls both', () => {
+        const onSave = vi.fn();
+        const onExit = vi.fn();
+        const { editor } = newEditor('hello', { onSave, onExit });
+        editor.command(':wq');
+        expect(onSave).toHaveBeenCalled();
+        expect(onExit).toHaveBeenCalled();
+    });
+
+    it('disable() does not call onSave', () => {
+        const onSave = vi.fn();
+        const { editor } = newEditor('hello', { onSave });
+        editor.disable(false);
+        expect(onSave).not.toHaveBeenCalled();
+    });
+});
+
+describe('disable teardown', () => {
+    afterEach(cleanupEditors);
+
+    it('writes the buffer back to the textarea when saving', () => {
+        const { textarea: ta, editor } = newEditor('orig');
+        press(editor, 'A');
+        type(editor, '!!!');
+        press(editor, '\x1b');
+        editor.disable(true);
+        expect(ta.value).toBe('orig!!!\n');
+    });
+
+    it('leaves the textarea untouched when not saving', () => {
+        const { textarea: ta, editor } = newEditor('orig');
+        press(editor, 'A');
+        type(editor, '!!!');
+        press(editor, '\x1b');
+        expect(editor.freeze()).toBe('orig!!!\n');
+        editor.disable(false);
+        expect(ta.value).toBe('orig\n');
+    });
+
+    it('leaves the original textarea in the document', () => {
+        const { textarea: ta, editor } = newEditor('orig');
+        editor.disable(false);
+        expect(document.body.contains(ta)).toBe(true);
     });
 });

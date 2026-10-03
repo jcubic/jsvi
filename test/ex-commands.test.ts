@@ -1,99 +1,246 @@
-import { describe, expect, it, vi } from 'vitest';
-import createEditor, { type ViEditor } from '../vi.esm.js';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cleanupEditors, keys, newEditor } from './harness.js';
 import { press, type } from './keys.js';
 
-function newEditor(content: string, opts: any = {}) {
-    const ta = document.createElement('textarea');
-    ta.value = content;
-    document.body.appendChild(ta);
-    const ed = createEditor(ta, opts);
-    return { ta, ed };
-}
-function cleanup(c: { ta: HTMLTextAreaElement; ed: ViEditor }) {
-    // disable without save to avoid side effects
-    try { c.ed.disable(false); } catch {}
-    c.ta.remove();
-}
+afterEach(cleanupEditors);
 
-describe('ex commands (group 8)', () => {
-    it(':w triggers onSave and syncs textarea', () => {
+/**
+ * `it.fails` marks behaviour that differs from vi. Those tests assert what vi
+ * does, so each one starts passing once the gap is closed - at which point it
+ * should become a plain `it`.
+ */
+
+describe('writing and quitting', () => {
+    it(':w syncs the textarea without exiting', () => {
+        const onExit = vi.fn();
+        const { textarea, editor } = newEditor('hello', { onExit });
+        press(editor, 'A');
+        type(editor, '!');
+        press(editor, '\x1b');
+        editor.command(':w');
+        expect(textarea.value).toBe('hello!\n');
+        expect(onExit).not.toHaveBeenCalled();
+    });
+
+    it(':q exits an unmodified buffer', () => {
+        const onExit = vi.fn();
+        const { editor } = newEditor('hello', { onExit });
+        editor.command(':q');
+        expect(onExit).toHaveBeenCalled();
+    });
+
+    it(':q refuses to exit a modified buffer', () => {
+        const onExit = vi.fn();
+        const { editor } = newEditor('hello', { onExit });
+        press(editor, 'A');
+        type(editor, 'x');
+        press(editor, '\x1b');
+        editor.command(':q');
+        expect(onExit).not.toHaveBeenCalled();
+    });
+
+    it(':q! discards changes and exits', () => {
+        const onExit = vi.fn();
+        const { textarea, editor } = newEditor('hello', { onExit });
+        press(editor, 'A');
+        type(editor, 'x');
+        press(editor, '\x1b');
+        editor.command(':q!');
+        expect(onExit).toHaveBeenCalled();
+        expect(textarea.value).toBe('hello\n');
+    });
+
+    it(':x saves and exits', () => {
+        const onExit = vi.fn();
+        const { textarea, editor } = newEditor('hello', { onExit });
+        press(editor, 'A');
+        type(editor, 'x');
+        press(editor, '\x1b');
+        editor.command(':x');
+        expect(onExit).toHaveBeenCalled();
+        expect(textarea.value).toBe('hellox\n');
+    });
+
+    it(':wq saves and exits', () => {
         const onSave = vi.fn();
-        const c = newEditor('hello\nworld', { onSave });
-        press(c.ed, 'A'); type(c.ed, '!'); press(c.ed, '\x1b');
-        c.ed.command(':w');
+        const onExit = vi.fn();
+        const { editor } = newEditor('hello', { onSave, onExit });
+        editor.command(':wq');
         expect(onSave).toHaveBeenCalled();
-        expect(c.ta.value).toBe(c.ed.freeze());
-        cleanup(c);
+        expect(onExit).toHaveBeenCalled();
     });
-    it(':q / :q! / :x / :wq', () => {
-        let exited = false;
-        const c = newEditor('hello', { onExit: () => exited = true });
-        // unmodified -> :q exits
-        c.ed.command(':q');
-        expect(exited).toBe(true);
-        cleanup(c);
-        exited = false;
-        const c2 = newEditor('hello', { onExit: () => exited = true });
-        press(c2.ed, 'A'); type(c2.ed, 'x'); press(c2.ed, '\x1b');
-        c2.ed.command(':q');
-        expect(exited).toBe(false); // blocked
-        c2.ed.command(':q!');
-        expect(exited).toBe(true);
-        cleanup(c2);
-        let saved = false; exited = false;
-        const c3 = newEditor('hello', { onSave: () => saved = true, onExit: () => exited = true });
-        press(c3.ed, 'A'); type(c3.ed, 'x'); press(c3.ed, '\x1b');
-        c3.ed.command(':x');
-        expect(exited).toBe(true);
-        cleanup(c3);
-        saved = false; exited = false;
-        const c4 = newEditor('hello', { onSave: () => saved = true, onExit: () => exited = true });
-        c4.ed.command(':wq');
-        expect(saved).toBe(true);
-        expect(exited).toBe(true);
-        cleanup(c4);
+});
+
+describe('line ranges', () => {
+    it(':%d deletes the whole buffer', () => {
+        const { editor } = newEditor('a\nb\nc\nd\ne');
+        editor.command(':%d');
+        expect(editor.freeze()).toBe('');
     });
-    it(':%d and :3,5d and :.,$d', () => {
-        const c = newEditor('a\nb\nc\nd\ne');
-        c.ed.command(':%d');
-        expect(c.ed.freeze()).toBe('');
-        cleanup(c);
-        const c2 = newEditor('a\nb\nc\nd\ne');
-        c2.ed.command(':3,4d');
-        // deletes lines 3-4 (c,d) leaving a,b,e
-        expect(c2.ed.freeze()).toContain('a');
-        expect(c2.ed.freeze()).toContain('e');
-        cleanup(c2);
-        const c3 = newEditor('a\nb\nc\nd\ne');
-        press(c3.ed, 'j');
-        c3.ed.command(':.,$d');
-        // should leave at least first line
-        expect(c3.ed.freeze().length).toBeLessThan('a\nb\nc\nd\ne\n'.length);
-        cleanup(c3);
+
+    it(':N,Md deletes an explicit range', () => {
+        const { editor } = newEditor('a\nb\nc\nd\ne');
+        editor.command(':3,4d');
+        expect(editor.freeze()).toBe('a\nb\ne\n');
     });
-    it(':s and :%s substitution', () => {
-        const c = newEditor('foo\nfoo\nfoo');
-        c.ed.command(':1s/foo/bar/');
-        expect(c.ed.freeze().length).toBeGreaterThan(0);
-        cleanup(c);
-        const c2 = newEditor('foo\nfoo\nfoo');
-        c2.ed.command(':%s/foo/bar/g');
-        expect(c2.ed.freeze()).toBe('bar\nbar\nbar\n');
-        cleanup(c2);
+
+    it(':Nd deletes a single line', () => {
+        const { editor } = newEditor('a\nb\nc');
+        editor.command(':2d');
+        expect(editor.freeze()).toBe('a\nc\n');
     });
-    it('invalid command leaves buffer untouched', () => {
-        const c = newEditor('hello');
-        const before = c.ed.freeze();
-        c.ed.command(':zzz');
-        expect(c.ed.freeze()).toBe(before);
-        cleanup(c);
+
+    it(':$d deletes the last line', () => {
+        const { editor } = newEditor('a\nb\nc');
+        editor.command(':$d');
+        expect(editor.freeze()).toBe('a\nb\n');
     });
-    it(':set and marks addressing', () => {
-        const c = newEditor('a\nb\nc\nd');
-        press(c.ed, 'j'); press(c.ed, 'm'); press(c.ed, 'a');
-        press(c.ed, 'j'); press(c.ed, 'j');
-        c.ed.command(":'a,.d");
-        expect(c.ed.freeze().length).toBeLessThan('a\nb\nc\nd\n'.length);
-        cleanup(c);
+
+    it(':.d deletes the line the cursor is on', () => {
+        const { editor } = newEditor('a\nb\nc');
+        keys(editor, 'j');
+        editor.command(':.d');
+        expect(editor.freeze()).toBe('a\nc\n');
+    });
+
+    it(':1,$d deletes every line', () => {
+        const { editor } = newEditor('a\nb\nc');
+        editor.command(':1,$d');
+        expect(editor.freeze()).toBe('');
+    });
+
+    // jsvi starts the range one line too early whenever the end is `$`:
+    // `:4,$d` removes lines 3-5 and `:3,$d` removes 2-5. An explicit numeric
+    // end such as `:4,5d` is handled correctly
+    it.fails(':N,$d deletes from line N to the end', () => {
+        const { editor } = newEditor('1\n2\n3\n4\n5');
+        editor.command(':4,$d');
+        expect(editor.freeze()).toBe('1\n2\n3\n');
+    });
+
+    it(':1,2d deletes the first two lines', () => {
+        const { editor } = newEditor('a\nb\nc\nd');
+        editor.command(':1,2d');
+        expect(editor.freeze()).toBe('c\nd\n');
+    });
+
+    it('a mark works as a range endpoint', () => {
+        const { editor } = newEditor('a\nb\nc\nd');
+        keys(editor, 'jma');
+        keys(editor, 'jj');
+        editor.command(":'a,.d");
+        expect(editor.freeze()).toBe('a\n');
+    });
+});
+
+describe('search and relative addressing', () => {
+    // jsvi parses these forms but resolves no line from them, so each command
+    // below is a silent no-op and the buffer comes back unchanged
+
+    it.fails(':/pattern/d deletes the matching line', () => {
+        const { editor } = newEditor('a\nb\nc\nd');
+        editor.command(':/c/d');
+        expect(editor.freeze()).toBe('a\nb\nd\n');
+    });
+
+    it.fails(':?pattern?d deletes the match found searching backward', () => {
+        const { editor } = newEditor('a\nb\nc\nd');
+        keys(editor, 'jjj');
+        editor.command(':?b?d');
+        expect(editor.freeze()).toBe('a\nc\nd\n');
+    });
+
+    it.fails(':/from/,/to/d deletes the range between two matches', () => {
+        const { editor } = newEditor('a\nb\nc\nd');
+        editor.command(':/b/,/c/d');
+        expect(editor.freeze()).toBe('a\nd\n');
+    });
+
+    it.fails(':.+1d deletes the line after the cursor', () => {
+        const { editor } = newEditor('a\nb\nc\nd');
+        keys(editor, 'j');
+        editor.command(':.+1d');
+        expect(editor.freeze()).toBe('a\nb\nd\n');
+    });
+
+    it.fails(':$-1d deletes the second to last line', () => {
+        const { editor } = newEditor('a\nb\nc\nd');
+        editor.command(':$-1d');
+        expect(editor.freeze()).toBe('a\nb\nd\n');
+    });
+});
+
+describe('substitution', () => {
+    it(':%s replaces across the whole buffer', () => {
+        const { editor } = newEditor('foo\nfoo\nfoo');
+        editor.command(':%s/foo/bar/g');
+        expect(editor.freeze()).toBe('bar\nbar\nbar\n');
+    });
+
+    it(':%s replaces every occurrence on a line with /g', () => {
+        const { editor } = newEditor('foo foo');
+        editor.command(':%s/foo/bar/g');
+        expect(editor.freeze()).toBe('bar bar\n');
+    });
+
+    // jsvi only ever substitutes on the first line of the range
+    it.fails(':N,Ms replaces across the given range', () => {
+        const { editor } = newEditor('foo\nfoo\nfoo');
+        editor.command(':1,2s/foo/bar/');
+        expect(editor.freeze()).toBe('bar\nbar\nfoo\n');
+    });
+
+    // a single-line address is a silent no-op in jsvi - the buffer is
+    // untouched where vi substitutes on that one line
+    it.fails(':Ns replaces on the addressed line', () => {
+        const { editor } = newEditor('foo\nfoo\nfoo');
+        editor.command(':1s/foo/bar/');
+        expect(editor.freeze()).toBe('bar\nfoo\nfoo\n');
+    });
+
+    // likewise with no address at all, which vi applies to the current line
+    it.fails(':s replaces on the current line', () => {
+        const { editor } = newEditor('foo\nfoo');
+        editor.command(':s/foo/bar/');
+        expect(editor.freeze()).toBe('bar\nfoo\n');
+    });
+});
+
+describe('reloading and unknown commands', () => {
+    it(':e! discards changes and reloads from the textarea', () => {
+        const { editor } = newEditor('a\nb\nc');
+        keys(editor, 'dd');
+        expect(editor.freeze()).toBe('b\nc\n');
+        editor.command(':e!');
+        expect(editor.freeze()).toBe('a\nb\nc\n');
+    });
+
+    it('an unrecognised command leaves the buffer untouched', () => {
+        const { editor } = newEditor('hello');
+        editor.command(':zzz');
+        expect(editor.freeze()).toBe('hello\n');
+    });
+
+    it(':= reports a line number without changing the buffer', () => {
+        const { editor } = newEditor('a\nb\nc');
+        editor.command(':=');
+        expect(editor.freeze()).toBe('a\nb\nc\n');
+    });
+});
+
+describe('rich-text formatting (:F)', () => {
+    it(':F!b marks following input as bold when html is on', () => {
+        const { editor } = newEditor('hello', { html: true });
+        editor.command(':F!b');
+        press(editor, 'A');
+        type(editor, 'XY');
+        press(editor, '\x1b');
+        expect(editor.freeze()).toBe('hello<b>XY\n');
+    });
+
+    it('leaves the buffer alone until something is typed', () => {
+        const { editor } = newEditor('hello', { html: true });
+        editor.command(':F!b');
+        expect(editor.freeze()).toBe('hello\n');
     });
 });

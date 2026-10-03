@@ -233,4 +233,77 @@ describe('backspace', () => {
         expect(editor.freeze()).toBe('abc\n');
         cleanup({ textarea, editor });
     });
+
+    it('leaves the joined line undoable', () => {
+        const { textarea, editor } = setup('123\n456');
+        press(editor, 'j');
+        press(editor, 'i');
+        key(editor, Keys.BACKSPACE);
+        type(editor, 'X');
+        esc(editor);
+        expect(editor.freeze()).toBe('123X456\n');
+        press(editor, 'u');
+        expect(editor.freeze()).toBe('123\n456\n');
+        cleanup({ textarea, editor });
+    });
+});
+
+describe('other keys in insert mode', () => {
+    it('Tab inserts whitespace', () => {
+        const { textarea, editor } = newEditor('hello');
+        press(editor, 'i');
+        // Tab only reaches insert mode through the keypress (synth=false) path
+        editor.keypress_inner({ which: 9, charCode: 9 } as unknown as KeyboardEvent, false);
+        esc(editor);
+        expect(editor.freeze()).toBe('        hello\n');
+        cleanup({ textarea, editor });
+    });
+
+    it('Ctrl-J splits the line like Enter', () => {
+        const { textarea, editor } = newEditor('hello');
+        press(editor, 'i');
+        // charCode 10 - what Ctrl-J delivers, as opposed to Enter's 13
+        editor.keypress_inner({ which: 10, charCode: 10 } as unknown as KeyboardEvent, false);
+        esc(editor);
+        expect(editor.freeze()).toBe('\nhello\n');
+        cleanup({ textarea, editor });
+    });
+});
+
+// Real browsers never fire `keypress` for Escape (it produces no character),
+// so exiting insert mode via Escape must also work through the `keyup`
+// handler alone -- it can't rely on Escape being intercepted on `keydown`
+// (older jsvi builds / browsers that don't add 27 to the keydown fast-path
+// depend on this entirely).
+describe('Escape via keyup after an arrow key', () => {
+    function realKeyup(keyCode: number) {
+        document.dispatchEvent(new KeyboardEvent('keyup', {
+            keyCode, which: keyCode, bubbles: true, cancelable: true
+        } as KeyboardEventInit));
+    }
+
+    it('exits insert mode after arrow keydown + arrow keyup + Escape keyup', () => {
+        const { textarea, editor } = newEditor();
+        press(editor, 'i');
+        key(editor, Keys.RIGHT); // sets the internal fakemode flag
+        realKeyup(39); // the arrow's own keyup -- must not leave fakemode stuck
+        realKeyup(27); // Escape keyup -- the only path older browsers use
+        // probe: if still in insert mode this would be inserted as literal text
+        press(editor, 'z');
+        expect(editor.freeze()).not.toContain('z');
+        cleanup({ textarea, editor });
+    });
+
+    it('does not leave a stale fakemode flag after multiple arrow presses', () => {
+        const { textarea, editor } = newEditor();
+        press(editor, 'i');
+        key(editor, Keys.DOWN);
+        realKeyup(40);
+        key(editor, Keys.UP);
+        realKeyup(38);
+        realKeyup(27);
+        press(editor, 'z');
+        expect(editor.freeze()).not.toContain('z');
+        cleanup({ textarea, editor });
+    });
 });
