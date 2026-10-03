@@ -1,3 +1,13 @@
+## 0.4.0
+### Features
+* remove the editor DOM on exit and rebuild it on each `vi()` call, so nothing carries over between editor sessions
+* make `disable()` safe to call twice, and tear down a still-open editor when `vi()` is called again
+### Bugfix
+* fix editor not taking focus when opened a second time, leaving the keyboard on the previously focused element or iFrame
+* fix `:kwak` background image and `color`/`backgroundColor` options leaking into the next editor session
+* fix document-level handlers not being restored when `vi()` was called twice on the same textarea
+* fix queued redraws firing after the editor was closed
+
 ## 0.3.0
 ### Features
 * switch cursor blinking from a JS interval to a CSS animation (`--vi-animation`: `vi-blink`/`vi-underline`/`vi-bar`/`vi-none`), same mechanism as jQuery Terminal, honoring `prefers-reduced-motion`

@@ -120,7 +120,6 @@ var vi = (function() {
     var oldcommand = '';
     var commandleft = 0;
     var savex, savey;
-    var once = true;
 
     var cursorx, cursory;
     var file = new Array();
@@ -424,6 +423,7 @@ var vi = (function() {
         var y = e.clientY;
         cclick = window.setTimeout(function() {
                 cclick=undefined;
+                if (!term) return;
                 _cursortoxy(x,y);
             }, 200);
         return false;
@@ -502,6 +502,7 @@ var vi = (function() {
         return false;
     }
     function _dosuggest(z) {
+        if (!suggest) return;
         var x = 0;
         var y = 0;
         var xt = z._term;
@@ -644,6 +645,7 @@ var vi = (function() {
 
     function _backing_paste_real() {
         doing_backing_paste = false;
+        if (!backing) return;
         term_redraw();
         if (!backing.value) return;
         if (backing._lastvalue == backing.value) {
@@ -3627,10 +3629,14 @@ var vi = (function() {
 
     function _redraw_term_back() {
         drawiv = undefined;
+        // `term` is undefined once editor_disable() has dropped the session's
+        // nodes, and a queued redraw can still land after that
+        if (!term) return;
         _redraw_term();
         term_draw_cursor();
     }
     function term_redraw() {
+        if (!term) return;
         if (drawiv) window.clearTimeout(drawiv);
         drawiv = window.setTimeout(_redraw_term_back, 10);
     }
@@ -3654,6 +3660,14 @@ var vi = (function() {
         term_redraw();
     }
     function editor_disable(sav) {
+        // the exit paths (:wq, :x, :q, :q?, ZZ) and the public disable() can
+        // both get here, and a session that is already torn down has nothing
+        // left to tear down - without this, the second call throws on the
+        // dropped node references below
+        if (!term) {
+            return;
+        }
+
         _cbrestore();
 
         if (term._formelement) {
@@ -3671,17 +3685,38 @@ var vi = (function() {
         backing.oninput = undefined;
         backing.onInput = undefined;
 
-        editor_wrapper.parentNode.removeChild(editor_wrapper);
+        // queued work would otherwise fire against the nodes dropped below
+        if (drawiv) window.clearTimeout(drawiv);
+        drawiv = undefined;
+        if (cclick != undefined) window.clearTimeout(cclick);
+        cclick = undefined;
+        doing_backing_paste = false;
+
+        if (editor_wrapper.parentNode) {
+            editor_wrapper.parentNode.removeChild(editor_wrapper);
+        }
 
         var z;
         for (z = document.body.firstChild; z; z = z.nextSibling) {
             if (z.tagName && z._flipe) z.style.display = z._orige;
         }
 
-        // bug in firefox: can't remove this
-        //document.body.removeChild(backing);
         if (backing.blur) backing.blur();
-        backing.style.display = 'none';
+
+        // drop every node this session built. They are closure variables, not
+        // per-session ones, so keeping them meant the next vi() call reused
+        // them along with whatever inline styles this session left on them -
+        // `display: none` on the backing textarea (which silently made
+        // `backing.focus()` a no-op and left the keyboard wherever it was),
+        // the `:kwak` background image, cursor decorations, and the editor
+        // colors from a previous `color`/`backgroundColor` option. The
+        // `if (!term)` gate in the entry point below rebuilds them all.
+        term = undefined;
+        suggest = undefined;
+        backing = undefined;
+        cursor = undefined;
+        editor_wrapper = undefined;
+
         if (document.body.focus) document.body.focus();
         if (document.focus) document.focus();
 
@@ -3701,9 +3736,12 @@ var vi = (function() {
         o.style.paddingBottom='0px';
     }
     return function(textarea, options) {
-        if (term && term._formelement && term._formelement != textarea) {
-            editor_disable(false);
-        }
+        // tear down any live session first - including one on this same
+        // textarea, which used to be skipped and so kept both the previous
+        // session's nodes and its entry in term_save_h, meaning the page's own
+        // document-level handlers were never restored
+        editor_disable(false);
+
         // Reset all shared state for a fresh editor instance
         emacsen = false;
         mode = 0;
@@ -3844,8 +3882,7 @@ var vi = (function() {
 
         editor_wrapper.appendChild(suggest);
         editor_wrapper.appendChild(term);
-        // firefox bug
-        if (once) editor_wrapper.appendChild(backing);
+        editor_wrapper.appendChild(backing);
         editor_wrapper.appendChild(cursor);
 
         textarea.parentNode.insertBefore(editor_wrapper, textarea);
@@ -3933,8 +3970,6 @@ var vi = (function() {
             mode = 0;
         }
 
-        once = false;
-
         backing._lastvalue = '';
         backing.value = '';
         backing.defaultValue = '';
@@ -3959,7 +3994,9 @@ var vi = (function() {
 
         cursor.style.display = 'inline';
         _cursor_fix();
-        window.setTimeout(term_redraw,1);
+        // tracked in drawiv so editor_disable() cancels it - an exit within
+        // the first millisecond would otherwise leave it queued
+        drawiv = window.setTimeout(term_redraw,1);
         term_resize();
 
         _cbw('resize', term_resize);

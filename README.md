@@ -89,6 +89,14 @@ The returned editor instance exposes methods such as `freeze()` /
 editor). See [`vi.esm.d.ts`](./vi.esm.d.ts) for the full public
 interface.
 
+Exiting the editor - through `:wq`, `:x`, `:q`, `ZZ` or `disable()` -
+removes the editor's DOM, restores the document-level event handlers it
+installed and returns focus to the document. Calling `disable()` on an
+editor that has already exited does nothing. Each `vi()` call builds a
+new editor from scratch, so no styling or state carries over from a
+previous one; calling `vi()` while an editor is still open tears that
+one down first (without saving).
+
 `color`/`backgroundColor` are applied inline on the editor, so they
 override the `--color`/`--background` CSS custom properties described
 below. To theme the editor from CSS instead (e.g. to share a theme
